@@ -1,0 +1,53 @@
+name: "Proxy sonar"
+description: "Starts the sonarqube proxy and returns sonar options"
+author: "Pavel Gonchukov"
+inputs:
+  ca-cert:
+    description: "CA Cert to MTLS access sonar"
+    required: true
+  cert:
+    description: "Cert to MTLS access sonar"
+    required: true
+  key:
+    description: "Key to MTLS access sonar"
+    required: true
+  sonar-host:
+    description: "Sonar host to proxy requests"
+    default: "https://mysonar.com"
+    required: true
+  sonar-token:
+    description: "Sonar token to proxy requests"
+    required: true
+outputs:
+  opts:
+    description: "Sonar options to append to mvn"
+    value: ${{ steps.proxy-and-opts.outputs.opts }}
+runs:
+  using: "composite"
+  steps:
+    - id: proxy-and-opts
+      shell: bash
+      run: |
+
+        echo "running proxy"
+        echo ${{ inputs.ca-cert }} | base64
+        echo "referencing internal TS component"
+        echo "proxy image is created from https://github.com/Tradeshift/sonarcube-actions"
+        docker run \
+          --env CACERT=${{ inputs.ca-cert }} \
+          --env CERT=${{ inputs.cert }} \
+          --env KEY=${{ inputs.key }} \
+          --env SONAR_HOST=${{ inputs.sonar-host }} \
+          -p 9000:9000 \
+          -d \
+          eu.gcr.io/tradeshift-base/sonar-proxy:master
+
+        git fetch origin master
+        REPONAME=$(IFS='/';read -ra ADDR <<< ${GITHUB_REPOSITORY}; echo ${ADDR[1]})
+        pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+        SONART_OPTS="-Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.projectKey=${REPONAME} -Dsonar.login=${{ inputs.sonar-token }} -Dsonar.sourceEncoding=UTF-8 -Dsonar.pullrequest.branch=${GITHUB_HEAD_REF} -Dsonar.pullrequest.key=${pull_number} -Dsonar.pullrequest.github.repository=${GITHUB_REPOSITORY} -Dsonar.pullrequest.provider=Github -Dsonar.scm.revision=$(git rev-parse HEAD)"
+
+        echo "::set-output name=opts::$SONART_OPTS"
+branding:
+  icon: "check-square"
+  color: "blue"
