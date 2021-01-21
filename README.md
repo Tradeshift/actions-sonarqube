@@ -1,8 +1,32 @@
-# sonarcube-action for maven projects
+# actions-sonarqube
+
+Actions for running sonarqube
+
+## scanner
 
 Usage:
 
+```yaml
+on: pull_request
+jobs:
+  sonarqube:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - uses: tradeshift/actions-sonarqube/scanner@v1
+        with:
+          ca-cert: ${{ secrets.SONAR_CACERT }}
+          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
+          client-key: ${{ secrets.SONAR_CLIENTKEY }}
+          token: ${{ secrets.SONAR_TOKEN }}
+          host: https://mysonar.com
 ```
+
+## script-proxy-opts
+
+Usage:
+
+```yaml
 name: Sonarqube scanner
 
 on:
