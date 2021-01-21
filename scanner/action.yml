@@ -20,4 +20,4 @@ inputs:
     required: true
 runs:
   using: docker
-  image: eu.gcr.io/tradeshift-base/actions-sonarqube/scanner:9878ffc0303be1a43c6585bf73eb2c038b5a52b2
+  image: docker://eu.gcr.io/tradeshift-base/actions-sonarqube/scanner:9878ffc0303be1a43c6585bf73eb2c038b5a52b2
