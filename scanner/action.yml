@@ -1,0 +1,23 @@
+name: scanner
+description: Runs sonar-scanner
+author: Benjamin Nørgaard
+inputs:
+  caCert: 
+    description: MTLS ca cert
+    required: true
+  clientCert:
+    description: MTLS client cert
+    required: true
+  clientKey:
+    description: MTLS client key
+    required: true
+  host:
+    description: Sonarqube host
+    required: true
+    default: https://sonar.ts.sv
+  token:
+    description: Sonarqube access token
+    required: true
+runs:
+  using: docker
+  image: eu.gcr.io/tradeshift-base/actions-sonarqube/scanner:9878ffc0303be1a43c6585bf73eb2c038b5a52b2
