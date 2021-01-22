@@ -4,15 +4,45 @@ Actions for running sonarqube
 
 ## scanner
 
-Usage:
+The scanner action runs the standalone scanner CLI.
+
+### Pull request analysis
 
 ```yaml
 on: pull_request
+
 jobs:
   sonarqube:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
+      - uses: tradeshift/actions-sonarqube/scanner@v1
+        with:
+          ca-cert: ${{ secrets.SONAR_CACERT }}
+          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
+          client-key: ${{ secrets.SONAR_CLIENTKEY }}
+          token: ${{ secrets.SONAR_TOKEN }}
+          host: https://mysonar.com
+```
+
+### Branch analysis
+
+When running branch analysis eg. on master branch, it is important to checkout
+with history. This can be done using `fetch-depth: 0` when checking out the
+code.
+
+```yaml
+on:
+  push:
+    branches: master
+
+jobs:
+  sonarqube:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - uses: tradeshift/actions-sonarqube/scanner@v1
         with:
           ca-cert: ${{ secrets.SONAR_CACERT }}
