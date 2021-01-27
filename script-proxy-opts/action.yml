@@ -40,7 +40,7 @@ runs:
           --env SONAR_HOST=${{ inputs.sonar-host }} \
           -p 9000:9000 \
           -d \
-          eu.gcr.io/tradeshift-base/sonar-proxy:master
+          eu.gcr.io/tradeshift-base/sonarqube-proxy:master
 
         git fetch origin master
         REPONAME=$(IFS='/';read -ra ADDR <<< ${GITHUB_REPOSITORY}; echo ${ADDR[1]})
