@@ -1,0 +1,39 @@
+name: sonarqube
+description: runs a sonar scanner
+author: Benjamin Nørgaard
+inputs:
+  args:
+    description: additional sonarqube arguments
+    required: false
+  ca-cert: 
+    description: MTLS ca cert
+    required: true
+  client-cert:
+    description: MTLS client cert
+    required: true
+  client-key:
+    description: MTLS client key
+    required: true
+  host:
+    description: Sonarqube host
+    required: true
+    default: https://sonar.ts.sv
+  scanner:
+    decsription: Sonarqube scanner
+    required: true
+    default: sonar-scanner
+  sonar-proxy-image:
+    description: Sonarqube proxy image
+    required: true
+    default: eu.gcr.io/tradeshift-public/sonarqube-proxy:master
+  sonar-scanner-version:
+    description: version of the SonarScanner cli to use/install
+    required: true
+    default: 4.6.0.2311
+  token:
+    description: Sonarqube access token
+    required: true
+runs:
+  using: node12
+  main: dist/index.js
+  post: dist/index.js
