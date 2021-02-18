@@ -49,7 +49,6 @@ async function createArgs(
   ];
 
   if (context.eventName === 'pull_request') {
-    // TODO: not sure if this works yet
     const payload = context.payload as PullRequestEvent;
     info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
     args.push(
