@@ -2,9 +2,7 @@
 
 Actions for running sonarqube
 
-## scanner
-
-The scanner action runs the standalone scanner CLI.
+## usage
 
 ### Pull request analysis
 
@@ -24,11 +22,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: tradeshift/actions-sonarqube/scanner@v1
+      - uses: tradeshift/actions-sonarqube@v2
         with:
-          caCert: ${{ secrets.SONAR_CACERT }}
-          clientCert: ${{ secrets.SONAR_CLIENTCERT }}
-          clientKey: ${{ secrets.SONAR_CLIENTKEY }}
+          ca-cert: ${{ secrets.SONAR_CACERT }}
+          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
+          client-key: ${{ secrets.SONAR_CLIENTKEY }}
           token: ${{ secrets.SONAR_TOKEN }}
           host: https://mysonar.com
 ```
@@ -51,11 +49,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: tradeshift/actions-sonarqube/scanner@v1
+      - uses: tradeshift/actions-sonarqube@v2
         with:
-          caCert: ${{ secrets.SONAR_CACERT }}
-          clientCert: ${{ secrets.SONAR_CLIENTCERT }}
-          clientKey: ${{ secrets.SONAR_CLIENTKEY }}
+          ca-cert: ${{ secrets.SONAR_CACERT }}
+          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
+          client-key: ${{ secrets.SONAR_CLIENTKEY }}
           token: ${{ secrets.SONAR_TOKEN }}
           host: https://mysonar.com
 ```
