@@ -1,5 +1,6 @@
 import {endGroup, info, setFailed, startGroup} from '@actions/core';
 import {context} from '@actions/github';
+import {Context} from '@actions/github/lib/context';
 import {PullRequestEvent} from '@octokit/webhooks-definitions/schema';
 import {headSHA} from './git';
 import {getInputs, Inputs} from './inputs';
@@ -17,11 +18,17 @@ async function run(): Promise<void> {
 
     const inputs = await getInputs();
     const sonarHost = await proxy.start(inputs);
-    const args = await createArgs(inputs, sonarHost);
+    const sha = await headSHA();
+    const args = createArgs(inputs, sonarHost, context, sha);
 
     switch (inputs.scanner) {
       case 'sonar-scanner':
-        await sonarScanner.run(inputs, args);
+        if (!inputs.sonarScannerVersion) {
+          throw new Error(
+            `sonar-scanner-version is required when using sonar-scanner`
+          );
+        }
+        await sonarScanner.run(inputs.sonarScannerVersion, args);
         break;
       default:
         throw new Error(`unsupported scanner:${inputs.scanner}`);
@@ -35,36 +42,38 @@ async function post(): Promise<void> {
   await proxy.stop(state.proxyContainer);
 }
 
-async function createArgs(
+export function createArgs(
   inputs: Inputs,
-  sonarHost: string
-): Promise<string[]> {
+  sonarHost: string,
+  ctx: Context,
+  sha: string
+): string[] {
   startGroup('Building Sonar arguments');
   const args = [
     `-Dsonar.login=${inputs.token}`,
     '-Dsonar.sourceEncoding=UTF-8',
-    `-Dsonar.projectKey=${context.repo.repo}`,
+    `-Dsonar.projectKey=${ctx.repo.repo}`,
     `-Dsonar.host.url=${sonarHost}`,
-    `-Dsonar.scm.revision=${await headSHA()}`
+    `-Dsonar.scm.revision=${sha}`
   ];
 
-  if (context.eventName === 'pull_request') {
-    const payload = context.payload as PullRequestEvent;
+  if (ctx.eventName === 'pull_request') {
+    const payload = ctx.payload as PullRequestEvent;
     info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
     args.push(
       `-Dsonar.pullrequest.key=${payload.pull_request.number}`,
       `-Dsonar.pullrequest.branch=${payload.pull_request.head.ref}`,
       `-Dsonar.pullrequest.base=${payload.pull_request.base.ref}`,
-      `-Dsonar.pullrequest.github.repository=${context.repo.owner}/${context.repo.repo}`
+      `-Dsonar.pullrequest.github.repository=${ctx.repo.owner}/${ctx.repo.repo}`
     );
   } else {
-    info(`Running branch analysis. Branch: ${context.ref}`);
-    args.push(
-      `-Dsonar.branch.name=${context.ref.replace(/^(refs\/heads\/)/, '')}`
-    );
+    info(`Running branch analysis. Branch: ${ctx.ref}`);
+    args.push(`-Dsonar.branch.name=${ctx.ref.replace(/^(refs\/heads\/)/, '')}`);
   }
 
-  args.push(...inputs.args);
+  if (inputs.args) {
+    args.push(...inputs.args);
+  }
   endGroup();
   return args;
 }

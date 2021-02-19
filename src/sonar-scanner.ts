@@ -1,12 +1,11 @@
 import {addPath, debug, endGroup, info, startGroup} from '@actions/core';
 import {which} from '@actions/io';
 import * as tc from '@actions/tool-cache';
-import {exec} from './exec';
-import {Inputs} from './inputs';
+import {exec} from '@tradeshift/actions-exec';
 
-export async function run(inputs: Inputs, args: string[]): Promise<void> {
-  if (!(await isAvailable(inputs.sonarScannerVersion))) {
-    await install(inputs.sonarScannerVersion);
+export async function run(version: string, args: string[]): Promise<void> {
+  if (!(await isAvailable(version))) {
+    await install(version);
   }
 
   startGroup('Running SonarScanner');

@@ -2,15 +2,15 @@ import csvparse from 'csv-parse/lib/sync';
 import * as core from '@actions/core';
 
 export interface Inputs {
-  args: string[];
-  caCert: string;
-  clientCert: string;
-  clientKey: string;
-  host: string;
-  scanner: string;
-  sonarProxyImage: string;
-  sonarScannerVersion: string;
-  token: string;
+  args?: string[];
+  caCert?: string;
+  clientCert?: string;
+  clientKey?: string;
+  host?: string;
+  scanner?: string;
+  sonarProxyImage?: string;
+  sonarScannerVersion?: string;
+  token?: string;
 }
 
 export async function getInputs(): Promise<Inputs> {

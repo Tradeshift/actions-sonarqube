@@ -1,10 +1,13 @@
 import {debug, endGroup, info, startGroup, warning} from '@actions/core';
-import {exec} from './exec';
+import {exec} from '@tradeshift/actions-exec';
 import {Inputs} from './inputs';
 import {setProxyContainer} from './state';
 
 export async function start(inputs: Inputs): Promise<string> {
   startGroup('Starting sonar proxy');
+  if (!inputs.sonarProxyImage) {
+    throw new Error('sonar-proxy-image is required');
+  }
   const args = [
     'run',
     '--rm',
