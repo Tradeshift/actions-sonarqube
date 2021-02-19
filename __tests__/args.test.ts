@@ -1,8 +1,8 @@
 import {Context} from '@actions/github/lib/context';
 import {Inputs} from '../src/inputs';
-import {createArgs} from '../src/main';
+import {create} from '../src/args';
 
-describe(createArgs, () => {
+describe(create, () => {
   let inputs: Inputs;
   let ctx: Context;
 
@@ -20,7 +20,7 @@ describe(createArgs, () => {
   });
 
   it('should always set default args', () => {
-    const args = createArgs(inputs, 'test.com', ctx, 'sha');
+    const args = create(inputs, 'test.com', ctx, 'sha');
     expect(args).toContain('-Dsonar.login=token');
     expect(args).toContain('-Dsonar.sourceEncoding=UTF-8');
     expect(args).toContain('-Dsonar.projectKey=repo');
@@ -41,7 +41,7 @@ describe(createArgs, () => {
         }
       }
     };
-    const args = createArgs(inputs, 'test.com', ctx, 'sha');
+    const args = create(inputs, 'test.com', ctx, 'sha');
     expect(args).toContain('-Dsonar.pullrequest.key=42');
     expect(args).toContain('-Dsonar.pullrequest.branch=my-branch');
     expect(args).toContain('-Dsonar.pullrequest.base=master');
@@ -51,14 +51,14 @@ describe(createArgs, () => {
 
   it('should set the branch name when not a PR', () => {
     ctx.eventName = 'push';
-    const args = createArgs(inputs, 'test.com', ctx, 'sha');
+    const args = create(inputs, 'test.com', ctx, 'sha');
     expect(args).toContain('-Dsonar.branch.name=my-branch');
     expect(args).not.toContain('-Dsonar.pullrequest.branch=my-branch');
   });
 
   it('should add additional args', () => {
     inputs.args = ['arg1', 'arg2'];
-    const args = createArgs(inputs, 'test.com', ctx, 'sha');
+    const args = create(inputs, 'test.com', ctx, 'sha');
     expect(args).toContain('arg1');
     expect(args).toContain('arg2');
   });

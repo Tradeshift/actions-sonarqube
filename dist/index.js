@@ -2,54 +2,39 @@ require('./sourcemap-register.js');module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 7757:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 4133:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exec = void 0;
-const exec_1 = __nccwpck_require__(1514);
+exports.create = void 0;
 const core_1 = __nccwpck_require__(2186);
-function exec(command, args = [], silent, stdin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let stdout = '';
-        let stderr = '';
-        core_1.debug(`Executing: ${command} ${args.join(' ')}`);
-        if (stdin) {
-            core_1.debug(`Stdin: ${stdin}`);
-        }
-        const options = {
-            silent,
-            ignoreReturnCode: true,
-            input: Buffer.from(stdin || '')
-        };
-        options.listeners = {
-            stdout: (data) => {
-                stdout += data.toString();
-            },
-            stderr: (data) => {
-                stderr += data.toString();
-            }
-        };
-        const returnCode = yield exec_1.exec(command, args, options);
-        return {
-            success: returnCode === 0,
-            stdout: stdout.trim(),
-            stderr: stderr.trim()
-        };
-    });
+function create(inputs, sonarHost, ctx, sha) {
+    core_1.startGroup('Building Sonar arguments');
+    const args = [
+        `-Dsonar.login=${inputs.token}`,
+        '-Dsonar.sourceEncoding=UTF-8',
+        `-Dsonar.projectKey=${ctx.repo.repo}`,
+        `-Dsonar.host.url=${sonarHost}`,
+        `-Dsonar.scm.revision=${sha}`
+    ];
+    if (ctx.eventName === 'pull_request') {
+        const payload = ctx.payload;
+        core_1.info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
+        args.push(`-Dsonar.pullrequest.key=${payload.pull_request.number}`, `-Dsonar.pullrequest.branch=${payload.pull_request.head.ref}`, `-Dsonar.pullrequest.base=${payload.pull_request.base.ref}`, `-Dsonar.pullrequest.github.repository=${ctx.repo.owner}/${ctx.repo.repo}`);
+    }
+    else {
+        core_1.info(`Running branch analysis. Branch: ${ctx.ref}`);
+        args.push(`-Dsonar.branch.name=${ctx.ref.replace(/^(refs\/heads\/)/, '')}`);
+    }
+    if (inputs.args) {
+        args.push(...inputs.args);
+    }
+    core_1.endGroup();
+    return args;
 }
-exports.exec = exec;
+exports.create = create;
 
 
 /***/ }),
@@ -70,10 +55,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.headSHA = void 0;
-const exec_1 = __nccwpck_require__(7757);
+const actions_exec_1 = __nccwpck_require__(291);
 function headSHA() {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield exec_1.exec('git', ['rev-parse', 'HEAD'], true);
+        const res = yield actions_exec_1.exec('git', ['rev-parse', 'HEAD'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get git head sha: ${res.stderr}`);
         }
@@ -214,6 +199,7 @@ const inputs_1 = __nccwpck_require__(6180);
 const proxy = __importStar(__nccwpck_require__(8689));
 const sonarScanner = __importStar(__nccwpck_require__(6789));
 const state = __importStar(__nccwpck_require__(9249));
+const args = __importStar(__nccwpck_require__(4133));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -224,10 +210,14 @@ function run() {
             state.setIsPost();
             const inputs = yield inputs_1.getInputs();
             const sonarHost = yield proxy.start(inputs);
-            const args = yield createArgs(inputs, sonarHost);
+            const sha = yield git_1.headSHA();
+            const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
             switch (inputs.scanner) {
                 case 'sonar-scanner':
-                    yield sonarScanner.run(inputs, args);
+                    if (!inputs.sonarScannerVersion) {
+                        throw new Error(`sonar-scanner-version is required when using sonar-scanner`);
+                    }
+                    yield sonarScanner.run(inputs.sonarScannerVersion, sonarArgs);
                     break;
                 default:
                     throw new Error(`unsupported scanner:${inputs.scanner}`);
@@ -241,31 +231,6 @@ function run() {
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
         yield proxy.stop(state.proxyContainer);
-    });
-}
-function createArgs(inputs, sonarHost) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Building Sonar arguments');
-        const args = [
-            `-Dsonar.login=${inputs.token}`,
-            '-Dsonar.sourceEncoding=UTF-8',
-            `-Dsonar.projectKey=${github_1.context.repo.repo}`,
-            `-Dsonar.host.url=${sonarHost}`,
-            `-Dsonar.scm.revision=${yield git_1.headSHA()}`
-        ];
-        if (github_1.context.eventName === 'pull_request') {
-            // TODO: not sure if this works yet
-            const payload = github_1.context.payload;
-            core_1.info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
-            args.push(`-Dsonar.pullrequest.key=${payload.pull_request.number}`, `-Dsonar.pullrequest.branch=${payload.pull_request.head.ref}`, `-Dsonar.pullrequest.base=${payload.pull_request.base.ref}`, `-Dsonar.pullrequest.github.repository=${github_1.context.repo.owner}/${github_1.context.repo.repo}`);
-        }
-        else {
-            core_1.info(`Running branch analysis. Branch: ${github_1.context.ref}`);
-            args.push(`-Dsonar.branch.name=${github_1.context.ref.replace(/^(refs\/heads\/)/, '')}`);
-        }
-        args.push(...inputs.args);
-        core_1.endGroup();
-        return args;
     });
 }
 run();
@@ -290,11 +255,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.stop = exports.start = void 0;
 const core_1 = __nccwpck_require__(2186);
-const exec_1 = __nccwpck_require__(7757);
+const actions_exec_1 = __nccwpck_require__(291);
 const state_1 = __nccwpck_require__(9249);
 function start(inputs) {
     return __awaiter(this, void 0, void 0, function* () {
         core_1.startGroup('Starting sonar proxy');
+        if (!inputs.sonarProxyImage) {
+            throw new Error('sonar-proxy-image is required');
+        }
         const args = [
             'run',
             '--rm',
@@ -309,7 +277,7 @@ function start(inputs) {
             `SONAR_HOST=${inputs.host}`,
             inputs.sonarProxyImage
         ];
-        const res = yield exec_1.exec('docker', args, true);
+        const res = yield actions_exec_1.exec('docker', args, true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not start sonar proxy container: ${res.stderr}`);
         }
@@ -328,7 +296,7 @@ exports.start = start;
 function stop(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
         core_1.info('Stopping sonar proxy');
-        const res = yield exec_1.exec('docker', ['stop', containerID], false);
+        const res = yield actions_exec_1.exec('docker', ['stop', containerID], false);
         if (res.stderr !== '' && !res.success) {
             core_1.warning(`could not stop sonar proxy: ${res.stderr}`);
         }
@@ -338,7 +306,7 @@ function stop(containerID) {
 exports.stop = stop;
 function getIP(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield exec_1.exec('docker', ['inspect', containerID], true);
+        const res = yield actions_exec_1.exec('docker', ['inspect', containerID], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error('could not inspect docker container');
         }
@@ -392,14 +360,14 @@ exports.run = void 0;
 const core_1 = __nccwpck_require__(2186);
 const io_1 = __nccwpck_require__(7436);
 const tc = __importStar(__nccwpck_require__(7784));
-const exec_1 = __nccwpck_require__(7757);
-function run(inputs, args) {
+const actions_exec_1 = __nccwpck_require__(291);
+function run(version, args) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!(yield isAvailable(inputs.sonarScannerVersion))) {
-            yield install(inputs.sonarScannerVersion);
+        if (!(yield isAvailable(version))) {
+            yield install(version);
         }
         core_1.startGroup('Running SonarScanner');
-        const res = yield exec_1.exec('sonar-scanner', args, false);
+        const res = yield actions_exec_1.exec('sonar-scanner', args, false);
         if (res.stderr !== '' && !res.success) {
             throw new Error(res.stderr);
         }
@@ -417,7 +385,7 @@ function isAvailable(version) {
             return false;
         }
         core_1.debug(`found sonar-scannr on path: ${sonarScannerPath}`);
-        const res = yield exec_1.exec(sonarScannerPath, ['--version'], true);
+        const res = yield actions_exec_1.exec(sonarScannerPath, ['--version'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get sonar version: ${res.stderr}`);
         }
@@ -7600,6 +7568,58 @@ const request = withDefaults(endpoint.endpoint, {
 exports.request = request;
 //# sourceMappingURL=index.js.map
 
+
+/***/ }),
+
+/***/ 291:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.exec = void 0;
+const exec_1 = __nccwpck_require__(1514);
+const core_1 = __nccwpck_require__(2186);
+function exec(command, args = [], silent, stdin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdout = '';
+        let stderr = '';
+        core_1.debug(`Executing: ${command} ${args.join(' ')}`);
+        if (stdin) {
+            core_1.debug(`Stdin: ${stdin}`);
+        }
+        const options = {
+            silent,
+            ignoreReturnCode: true,
+            input: Buffer.from(stdin || '')
+        };
+        options.listeners = {
+            stdout: (data) => {
+                stdout += data.toString();
+            },
+            stderr: (data) => {
+                stderr += data.toString();
+            }
+        };
+        const returnCode = yield exec_1.exec(command, args, options);
+        return {
+            success: returnCode === 0,
+            stdout: stdout.trim(),
+            stderr: stderr.trim()
+        };
+    });
+}
+exports.exec = exec;
+//# sourceMappingURL=exec.js.map
 
 /***/ }),
 
