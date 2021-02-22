@@ -30,7 +30,7 @@
     "@actions/github": "^4.0.0",
     "@actions/io": "^1.0.2",
     "@actions/tool-cache": "^1.6.1",
-    "@octokit/webhooks-definitions": "^3.61.0",
+    "@octokit/webhooks-definitions": "^3.61.1",
     "@tradeshift/actions-exec": "^1.0.0",
     "csv-parse": "^4.15.1"
   },
