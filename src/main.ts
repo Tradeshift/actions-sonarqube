@@ -4,6 +4,7 @@ import {headSHA} from './git';
 import {getInputs} from './inputs';
 import * as proxy from './proxy';
 import * as sonarScanner from './sonar-scanner';
+import * as maven from './maven';
 import * as state from './state';
 import * as args from './args';
 
@@ -29,6 +30,10 @@ async function run(): Promise<void> {
         }
         await sonarScanner.run(inputs.sonarScannerVersion, sonarArgs);
         break;
+      case 'maven':
+        await maven.run(sonarArgs);
+        break;
+
       default:
         throw new Error(`unsupported scanner:${inputs.scanner}`);
     }
