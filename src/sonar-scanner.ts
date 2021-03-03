@@ -11,7 +11,7 @@ export async function run(version: string, args: string[]): Promise<void> {
   startGroup('Running SonarScanner');
   const res = await exec('sonar-scanner', args, false);
   if (res.stderr !== '' && !res.success) {
-    throw new Error(res.stderr);
+    throw new Error(`failed sonar scanner execution: ${res.stderr}`);
   }
   endGroup();
 }
@@ -23,7 +23,7 @@ async function isAvailable(version: string): Promise<boolean> {
   } catch {
     return false;
   }
-  debug(`found sonar-scannr on path: ${sonarScannerPath}`);
+  debug(`found sonar-scanner on path: ${sonarScannerPath}`);
 
   const res = await exec(sonarScannerPath, ['--version'], true);
   if (res.stderr !== '' && !res.success) {

@@ -198,6 +198,7 @@ const git_1 = __nccwpck_require__(3374);
 const inputs_1 = __nccwpck_require__(6180);
 const proxy = __importStar(__nccwpck_require__(8689));
 const sonarScanner = __importStar(__nccwpck_require__(6789));
+const maven = __importStar(__nccwpck_require__(1613));
 const state = __importStar(__nccwpck_require__(9249));
 const args = __importStar(__nccwpck_require__(4133));
 function run() {
@@ -219,6 +220,9 @@ function run() {
                     }
                     yield sonarScanner.run(inputs.sonarScannerVersion, sonarArgs);
                     break;
+                case 'maven':
+                    yield maven.run(sonarArgs);
+                    break;
                 default:
                     throw new Error(`unsupported scanner:${inputs.scanner}`);
             }
@@ -234,6 +238,39 @@ function post() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 1613:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const core_1 = __nccwpck_require__(2186);
+const actions_exec_1 = __nccwpck_require__(291);
+function run(args) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core_1.startGroup('Running Maven SonarScanner');
+        const res = yield actions_exec_1.exec('mvn', ['-B', 'sonar:sonar'].concat(args), false);
+        if (res.stderr !== '' && !res.success) {
+            throw new Error(`failed maven execution: ${res.stderr}`);
+        }
+        core_1.endGroup();
+    });
+}
+exports.run = run;
 
 
 /***/ }),
@@ -369,7 +406,7 @@ function run(version, args) {
         core_1.startGroup('Running SonarScanner');
         const res = yield actions_exec_1.exec('sonar-scanner', args, false);
         if (res.stderr !== '' && !res.success) {
-            throw new Error(res.stderr);
+            throw new Error(`failed sonar scanner execution: ${res.stderr}`);
         }
         core_1.endGroup();
     });
@@ -384,7 +421,7 @@ function isAvailable(version) {
         catch (_a) {
             return false;
         }
-        core_1.debug(`found sonar-scannr on path: ${sonarScannerPath}`);
+        core_1.debug(`found sonar-scanner on path: ${sonarScannerPath}`);
         const res = yield actions_exec_1.exec(sonarScannerPath, ['--version'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get sonar version: ${res.stderr}`);

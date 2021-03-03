@@ -5,7 +5,7 @@ inputs:
   args:
     description: additional sonarqube arguments
     required: false
-  ca-cert: 
+  ca-cert:
     description: MTLS ca cert
     required: true
   client-cert:
