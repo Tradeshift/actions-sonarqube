@@ -8,6 +8,15 @@ export async function start(inputs: Inputs): Promise<string> {
   if (!inputs.sonarProxyImage) {
     throw new Error('sonar-proxy-image is required');
   }
+  if (!inputs.caCert) {
+    throw new Error('ca-cert is required');
+  }
+  if (!inputs.clientCert) {
+    throw new Error('client-cert is required');
+  }
+  if (!inputs.clientKey) {
+    throw new Error('client-key is required');
+  }
   const args = [
     'run',
     '--rm',
