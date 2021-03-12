@@ -24,9 +24,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: tradeshift/actions-sonarqube@v2
         with:
-          ca-cert: ${{ secrets.SONAR_CACERT }}
-          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
-          client-key: ${{ secrets.SONAR_CLIENTKEY }}
           token: ${{ secrets.SONAR_TOKEN }}
           host: https://mysonar.com
 ```
@@ -36,6 +33,28 @@ jobs:
 When running branch analysis eg. on master branch, it is important to
 checkout with history. This can be done using `fetch-depth: 0` when using
 the `actions/checkout@v2` action.
+
+```yaml
+on:
+  push:
+    branches: master
+
+jobs:
+  sonarqube:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: tradeshift/actions-sonarqube@v2
+        with:
+          token: ${{ secrets.SONAR_TOKEN }}
+          host: https://mysonar.com
+```
+
+### Running with mTLS 
+
+To have extra security on the access to sonarqube we are guarding it with mTLS. To run the action with mTLS pass `ca-cert`, `client-cert` and `client-key`
 
 ```yaml
 on:

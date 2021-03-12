@@ -7,13 +7,13 @@ inputs:
     required: false
   ca-cert:
     description: MTLS ca cert
-    required: true
+    required: false
   client-cert:
     description: MTLS client cert
-    required: true
+    required: false
   client-key:
     description: MTLS client key
-    required: true
+    required: false
   host:
     description: Sonarqube host
     required: true

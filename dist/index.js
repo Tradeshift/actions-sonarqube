@@ -210,7 +210,13 @@ function run() {
             }
             state.setIsPost();
             const inputs = yield inputs_1.getInputs();
-            const sonarHost = yield proxy.start(inputs);
+            if (!inputs.host) {
+                throw new Error(`host is required`);
+            }
+            let sonarHost = inputs.host;
+            if (inputs.clientCert) {
+                sonarHost = yield proxy.start(inputs);
+            }
             const sha = yield git_1.headSHA();
             const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
             switch (inputs.scanner) {
@@ -234,7 +240,9 @@ function run() {
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield proxy.stop(state.proxyContainer);
+        if (state.proxyContainer) {
+            yield proxy.stop(state.proxyContainer);
+        }
     });
 }
 run();
@@ -299,6 +307,15 @@ function start(inputs) {
         core_1.startGroup('Starting sonar proxy');
         if (!inputs.sonarProxyImage) {
             throw new Error('sonar-proxy-image is required');
+        }
+        if (!inputs.caCert) {
+            throw new Error('ca-cert is required');
+        }
+        if (!inputs.clientCert) {
+            throw new Error('client-cert is required');
+        }
+        if (!inputs.clientKey) {
+            throw new Error('client-key is required');
         }
         const args = [
             'run',

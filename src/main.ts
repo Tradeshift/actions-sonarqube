@@ -17,7 +17,14 @@ async function run(): Promise<void> {
     state.setIsPost();
 
     const inputs = await getInputs();
-    const sonarHost = await proxy.start(inputs);
+    if (!inputs.host) {
+      throw new Error(`host is required`);
+    }
+    let sonarHost: string = inputs.host;
+    if (inputs.clientCert) {
+      sonarHost = await proxy.start(inputs);
+    }
+
     const sha = await headSHA();
     const sonarArgs = args.create(inputs, sonarHost, context, sha);
 
@@ -43,7 +50,9 @@ async function run(): Promise<void> {
 }
 
 async function post(): Promise<void> {
-  await proxy.stop(state.proxyContainer);
+  if (state.proxyContainer) {
+    await proxy.stop(state.proxyContainer);
+  }
 }
 
 run();
