@@ -52,7 +52,7 @@ jobs:
           host: https://mysonar.com
 ```
 
-### Running with mTLS 
+### Running with mTLS
 
 To have extra security on the access to sonarqube we are guarding it with mTLS. To run the action with mTLS pass `ca-cert`, `client-cert` and `client-key`
 
@@ -77,7 +77,7 @@ jobs:
           host: https://mysonar.com
 ```
 
-## script-proxy-opts
+### Running with maven
 
 Usage:
 
@@ -100,36 +100,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Set up JDK 10
-        uses: actions/setup-java@v1
-        with:
-          java-version: 10
+      - uses: tradeshift/actions-setup-java@v1.4.3
+          with:
+            java-version: 10
+            maven-version: "3.6.3"
+            maven-ca-cert-b64: ${{ secrets.MTLS_CACERT }}
+            maven-keystore-p12-b64: ${{ secrets.MAVEN_P12 }}
+            maven-keystore-password: ${{ secrets.MAVEN_P12_PASSWORD }}
+            maven-settings-b64: ${{ secrets.MAVEN_SETTINGS }}
+            maven-security-settings-b64: ${{ secrets.MAVEN_SECURITY }}
 
-      - name: Setup Maven certs
-        uses: tradeshift/actions-maven@master
-        with:
-          maven-settings: ${{ secrets.MAVEN_SETTINGS }}
-          maven-security-settings: ${{ secrets.MAVEN_SECURITY }}
-          maven-p12-keystore: ${{ secrets.MAVEN_P12 }}
-          maven-p12-keystore-password: ${{ secrets.MAVEN_P12_PASSWORD }}
-          company-rootca: ${{ secrets.MTLS_CACERT }}
+      - run: |
+          mvn -B compile
 
-      - name: Auth Docker GCR
-        uses: tradeshift/actions-docker-gcr/auth@master
+      - uses: tradeshift/actions-sonarqube@v2
         with:
-          gcr-service-account-key: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_KEY }}
-
-      - name: SonarQube options
-        id: sonar-opts
-        uses: tradeshift/actions-sonarqube/script-proxy-opts@master
-        with:
-          ca-cert: ${{ secrets.MTLS_CACERT }}
-          cert: ${{ secrets.MTLS_CERT }}
-          key: ${{ secrets.MTLS_KEY }}
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
-          sonar-host: "https://sonar.host"
-
-      - name SonarQube maven scan
-        run: |
-          mvn -B sonar:sonar ${{ steps.sonar-opts.output.opts }}
+          ca-cert: ${{ secrets.SONAR_CACERT }}
+          client-cert: ${{ secrets.SONAR_CLIENTCERT }}
+          client-key: ${{ secrets.SONAR_CLIENTKEY }}
+          token: ${{ secrets.SONAR_TOKEN }}
+          host: https://mysonar.com
+          scanner: maven
 ```
