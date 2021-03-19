@@ -114,11 +114,6 @@ jobs:
           maven-p12-keystore-password: ${{ secrets.MAVEN_P12_PASSWORD }}
           company-rootca: ${{ secrets.MTLS_CACERT }}
 
-      - name: Auth Docker GCR
-        uses: tradeshift/actions-docker-gcr/auth@master
-        with:
-          gcr-service-account-key: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_KEY }}
-
       - name: SonarQube options
         id: sonar-opts
         uses: tradeshift/actions-sonarqube/script-proxy-opts@master
