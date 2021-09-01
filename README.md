@@ -52,7 +52,7 @@ jobs:
           host: https://mysonar.com
 ```
 
-### Running with mTLS 
+### Running with mTLS
 
 To have extra security on the access to sonarqube we are guarding it with mTLS. To run the action with mTLS pass `ca-cert`, `client-cert` and `client-key`
 

@@ -33,6 +33,13 @@ inputs:
   token:
     description: Sonarqube access token
     required: true
+  github-token:
+    description: >
+      Github token for cleaning up PR comments. By default, the automatic
+      token provided by GitHub is used. You can see more info about GitHub's default token here:
+      https://docs.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token
+    default: ${{ github.token }}
+    required: false
 runs:
   using: node12
   main: dist/index.js
