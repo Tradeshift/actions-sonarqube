@@ -47,7 +47,7 @@ async function run(): Promise<void> {
         throw new Error(`unsupported scanner:${inputs.scanner}`);
     }
   } catch (error) {
-    setFailed(error.message);
+    setFailed((error as Error).message);
   }
 }
 
