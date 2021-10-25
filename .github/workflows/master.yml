@@ -22,3 +22,23 @@ jobs:
           npm run lint
           npm run package
           npm run test
+  release:
+    runs-on: self-hosted
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: tradeshift/actions-semantic-release@v1
+        id: semantic-release
+        with:
+          branches: |
+            [
+              'master'
+            ]
+          check_name: Semantic release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Action tags (major version tag)
+        if: ${{ steps.semantic-release.outputs.new_release_published }}
+        run: |
+          git tag -f v${{ steps.semantic-release.outputs.new_release_major_version }}
+          git push -f origin v${{ steps.semantic-release.outputs.new_release_major_version }}

@@ -10,7 +10,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.create = void 0;
 const core_1 = __nccwpck_require__(2186);
 function create(inputs, sonarHost, ctx, sha) {
-    core_1.startGroup('Building Sonar arguments');
+    (0, core_1.startGroup)('Building Sonar arguments');
     const args = [
         `-Dsonar.login=${inputs.token}`,
         '-Dsonar.sourceEncoding=UTF-8',
@@ -20,17 +20,17 @@ function create(inputs, sonarHost, ctx, sha) {
     ];
     if (ctx.eventName === 'pull_request') {
         const payload = ctx.payload;
-        core_1.info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
+        (0, core_1.info)(`Running pull request analysis. PR: ${payload.pull_request.number}`);
         args.push(`-Dsonar.pullrequest.key=${payload.pull_request.number}`, `-Dsonar.pullrequest.branch=${payload.pull_request.head.ref}`, `-Dsonar.pullrequest.base=${payload.pull_request.base.ref}`, `-Dsonar.pullrequest.github.repository=${ctx.repo.owner}/${ctx.repo.repo}`);
     }
     else {
-        core_1.info(`Running branch analysis. Branch: ${ctx.ref}`);
+        (0, core_1.info)(`Running branch analysis. Branch: ${ctx.ref}`);
         args.push(`-Dsonar.branch.name=${ctx.ref.replace(/^(refs\/heads\/)/, '')}`);
     }
     if (inputs.args) {
         args.push(...inputs.args);
     }
-    core_1.endGroup();
+    (0, core_1.endGroup)();
     return args;
 }
 exports.create = create;
@@ -57,7 +57,7 @@ exports.headSHA = void 0;
 const actions_exec_1 = __nccwpck_require__(291);
 function headSHA() {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield actions_exec_1.exec('git', ['rev-parse', 'HEAD'], true);
+        const res = yield (0, actions_exec_1.exec)('git', ['rev-parse', 'HEAD'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get git head sha: ${res.stderr}`);
         }
@@ -133,7 +133,7 @@ function getInputList(name, ignoreComma = false) {
         if (items === '') {
             return res;
         }
-        const parsed = yield sync_1.default(items, {
+        const parsed = yield (0, sync_1.default)(items, {
             columns: false,
             relaxColumnCount: true,
             skipLinesWithEmptyValues: true
@@ -210,7 +210,7 @@ function run() {
             }
             state.setIsPost();
             state.setActionStartedAt(new Date());
-            const inputs = yield inputs_1.getInputs();
+            const inputs = yield (0, inputs_1.getInputs)();
             if (!inputs.host) {
                 throw new Error(`host is required`);
             }
@@ -218,7 +218,7 @@ function run() {
             if (inputs.clientCert) {
                 sonarHost = yield proxy.start(inputs);
             }
-            const sha = yield git_1.headSHA();
+            const sha = yield (0, git_1.headSHA)();
             const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
             switch (inputs.scanner) {
                 case 'sonar-scanner':
@@ -235,14 +235,14 @@ function run() {
             }
         }
         catch (error) {
-            core_1.setFailed(error.message);
+            (0, core_1.setFailed)(error.message);
         }
     });
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
         if (state.actionStartedAt) {
-            yield pr_1.removeCommentsOlderThan(state.actionStartedAt);
+            yield (0, pr_1.removeCommentsOlderThan)(state.actionStartedAt);
         }
         if (state.proxyContainer) {
             yield proxy.stop(state.proxyContainer);
@@ -274,12 +274,12 @@ const core_1 = __nccwpck_require__(2186);
 const actions_exec_1 = __nccwpck_require__(291);
 function run(args) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Running Maven SonarScanner');
-        const res = yield actions_exec_1.exec('mvn', ['-B', 'sonar:sonar'].concat(args), false);
+        (0, core_1.startGroup)('Running Maven SonarScanner');
+        const res = yield (0, actions_exec_1.exec)('mvn', ['-B', 'sonar:sonar'].concat(args), false);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`failed maven execution: ${res.stderr}`);
         }
-        core_1.endGroup();
+        (0, core_1.endGroup)();
     });
 }
 exports.run = run;
@@ -308,18 +308,18 @@ const github_1 = __nccwpck_require__(5438);
 function removeCommentsOlderThan(deletionCutoff) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        const token = core_1.getInput('github-token');
+        const token = (0, core_1.getInput)('github-token');
         // guard against running on master / without token
         if (!((_a = github_1.context.issue) === null || _a === void 0 ? void 0 : _a.number)) {
-            core_1.info(`${(_b = github_1.context.issue) === null || _b === void 0 ? void 0 : _b.number}`);
-            core_1.info(`Skipping comment cleanup on non-pr build`);
+            (0, core_1.info)(`${(_b = github_1.context.issue) === null || _b === void 0 ? void 0 : _b.number}`);
+            (0, core_1.info)(`Skipping comment cleanup on non-pr build`);
             return;
         }
         if (!token) {
-            core_1.info(`Skipping comment cleanup, no github-token provided`);
+            (0, core_1.info)(`Skipping comment cleanup, no github-token provided`);
             return;
         }
-        const github = github_1.getOctokit(token);
+        const github = (0, github_1.getOctokit)(token);
         const comments = yield github.paginate(github.rest.issues.listComments, {
             issue_number: github_1.context.issue.number,
             owner: github_1.context.repo.owner,
@@ -328,7 +328,7 @@ function removeCommentsOlderThan(deletionCutoff) {
         for (const comment of comments) {
             if (((_c = comment.user) === null || _c === void 0 ? void 0 : _c.login) === 'ts-sonarqube[bot]' &&
                 new Date(comment.created_at) < deletionCutoff) {
-                core_1.info(`Deleting comment ${comment.id} by ${comment.user.login}`);
+                (0, core_1.info)(`Deleting comment ${comment.id} by ${comment.user.login}`);
                 yield github.rest.issues.deleteComment({
                     owner: github_1.context.repo.owner,
                     repo: github_1.context.repo.repo,
@@ -364,7 +364,7 @@ const actions_exec_1 = __nccwpck_require__(291);
 const state_1 = __nccwpck_require__(9249);
 function start(inputs) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Starting sonar proxy');
+        (0, core_1.startGroup)('Starting sonar proxy');
         if (!inputs.sonarProxyImage) {
             throw new Error('sonar-proxy-image is required');
         }
@@ -391,28 +391,28 @@ function start(inputs) {
             `SONAR_HOST=${inputs.host}`,
             inputs.sonarProxyImage
         ];
-        const res = yield actions_exec_1.exec('docker', args, true);
+        const res = yield (0, actions_exec_1.exec)('docker', args, true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not start sonar proxy container: ${res.stderr}`);
         }
         const containerID = res.stdout.trim();
-        state_1.setProxyContainer(containerID);
+        (0, state_1.setProxyContainer)(containerID);
         const proxyIP = yield getIP(containerID);
         const host = `http://${proxyIP}:9000`;
-        core_1.info(`Proxy container: ${containerID}`);
-        core_1.info(`Proxy container IP: ${proxyIP}`);
-        core_1.info(`Proxy container host: ${host}`);
-        core_1.endGroup();
+        (0, core_1.info)(`Proxy container: ${containerID}`);
+        (0, core_1.info)(`Proxy container IP: ${proxyIP}`);
+        (0, core_1.info)(`Proxy container host: ${host}`);
+        (0, core_1.endGroup)();
         return host;
     });
 }
 exports.start = start;
 function stop(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.info('Stopping sonar proxy');
-        const res = yield actions_exec_1.exec('docker', ['stop', containerID], false);
+        (0, core_1.info)('Stopping sonar proxy');
+        const res = yield (0, actions_exec_1.exec)('docker', ['stop', containerID], false);
         if (res.stderr !== '' && !res.success) {
-            core_1.warning(`could not stop sonar proxy: ${res.stderr}`);
+            (0, core_1.warning)(`could not stop sonar proxy: ${res.stderr}`);
         }
         return;
     });
@@ -420,11 +420,11 @@ function stop(containerID) {
 exports.stop = stop;
 function getIP(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield actions_exec_1.exec('docker', ['inspect', containerID], true);
+        const res = yield (0, actions_exec_1.exec)('docker', ['inspect', containerID], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error('could not inspect docker container');
         }
-        core_1.debug(res.stdout.trim());
+        (0, core_1.debug)(res.stdout.trim());
         const obj = JSON.parse(res.stdout.trim());
         if (!obj || !obj[0].NetworkSettings.Networks.bridge.IPAddress) {
             throw new Error('ip adress of proxy container could not be determined');
@@ -480,12 +480,12 @@ function run(version, args) {
         if (!(yield isAvailable(version))) {
             yield install(version);
         }
-        core_1.startGroup('Running SonarScanner');
-        const res = yield actions_exec_1.exec('sonar-scanner', args, false);
+        (0, core_1.startGroup)('Running SonarScanner');
+        const res = yield (0, actions_exec_1.exec)('sonar-scanner', args, false);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`failed sonar scanner execution: ${res.stderr}`);
         }
-        core_1.endGroup();
+        (0, core_1.endGroup)();
     });
 }
 exports.run = run;
@@ -493,13 +493,13 @@ function isAvailable(version) {
     return __awaiter(this, void 0, void 0, function* () {
         let sonarScannerPath;
         try {
-            sonarScannerPath = yield io_1.which('sonar-scanner', true);
+            sonarScannerPath = yield (0, io_1.which)('sonar-scanner', true);
         }
         catch (_a) {
             return false;
         }
-        core_1.debug(`found sonar-scanner on path: ${sonarScannerPath}`);
-        const res = yield actions_exec_1.exec(sonarScannerPath, ['--version'], true);
+        (0, core_1.debug)(`found sonar-scanner on path: ${sonarScannerPath}`);
+        const res = yield (0, actions_exec_1.exec)(sonarScannerPath, ['--version'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get sonar version: ${res.stderr}`);
         }
@@ -507,29 +507,29 @@ function isAvailable(version) {
         if (!matches) {
             throw new Error(`could not extract sonar version from output: ${res.stdout}`);
         }
-        core_1.debug(`${sonarScannerPath} version: ${matches[1]}`);
+        (0, core_1.debug)(`${sonarScannerPath} version: ${matches[1]}`);
         return matches[1] === version;
     });
 }
 function install(version) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Installing SonarScanner');
+        (0, core_1.startGroup)('Installing SonarScanner');
         let sonarDirectory = tc.find('sonar-scanner', version);
         if (!sonarDirectory) {
-            core_1.info(`SonarScanner version ${version} not found in cache. Downloading...`);
+            (0, core_1.info)(`SonarScanner version ${version} not found in cache. Downloading...`);
             sonarDirectory = yield download(version);
         }
-        core_1.addPath(`${sonarDirectory}/sonar-scanner-${version}-linux/bin`);
-        core_1.info(`Successfully installed SonarScanner ${version}`);
-        core_1.endGroup();
+        (0, core_1.addPath)(`${sonarDirectory}/sonar-scanner-${version}-linux/bin`);
+        (0, core_1.info)(`Successfully installed SonarScanner ${version}`);
+        (0, core_1.endGroup)();
     });
 }
 function download(version) {
     return __awaiter(this, void 0, void 0, function* () {
         const sonarPath = yield tc.downloadTool(`https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${version}-linux.zip`);
-        core_1.info('Extracting');
+        (0, core_1.info)('Extracting');
         const sonarExtractedPath = yield tc.extractZip(sonarPath);
-        core_1.info('Saving to cache');
+        (0, core_1.info)('Saving to cache');
         const sonarCachedPath = yield tc.cacheDir(sonarExtractedPath, 'sonar-scanner', version);
         return sonarCachedPath;
     });
@@ -546,19 +546,19 @@ function download(version) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setActionStartedAt = exports.setProxyContainer = exports.setIsPost = exports.actionStartedAt = exports.proxyContainer = exports.isPost = void 0;
 const core_1 = __nccwpck_require__(2186);
-exports.isPost = core_1.getState('isPost') === 'true';
-exports.proxyContainer = core_1.getState('proxyContainer');
-exports.actionStartedAt = new Date(core_1.getState('actionStartedAt'));
+exports.isPost = (0, core_1.getState)('isPost') === 'true';
+exports.proxyContainer = (0, core_1.getState)('proxyContainer');
+exports.actionStartedAt = new Date((0, core_1.getState)('actionStartedAt'));
 function setIsPost() {
-    core_1.saveState('isPost', 'true');
+    (0, core_1.saveState)('isPost', 'true');
 }
 exports.setIsPost = setIsPost;
 function setProxyContainer(id) {
-    core_1.saveState('proxyContainer', id);
+    (0, core_1.saveState)('proxyContainer', id);
 }
 exports.setProxyContainer = setProxyContainer;
 function setActionStartedAt(date) {
-    core_1.saveState('actionStartedAt', date.toJSON());
+    (0, core_1.saveState)('actionStartedAt', date.toJSON());
 }
 exports.setActionStartedAt = setActionStartedAt;
 
@@ -698,12 +698,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -876,19 +877,30 @@ exports.debug = debug;
 /**
  * Adds an error issue
  * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function error(message) {
-    command_1.issue('error', message instanceof Error ? message.toString() : message);
+function error(message, properties = {}) {
+    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
- * Adds an warning issue
+ * Adds a warning issue
  * @param message warning issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function warning(message) {
-    command_1.issue('warning', message instanceof Error ? message.toString() : message);
+function warning(message, properties = {}) {
+    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
+/**
+ * Adds a notice issue
+ * @param message notice issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+function notice(message, properties = {}) {
+    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
+exports.notice = notice;
 /**
  * Writes info to log with console.log.
  * @param message info message
@@ -961,6 +973,12 @@ function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
 exports.getState = getState;
+function getIDToken(aud) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield oidc_utils_1.OidcClient.getIDToken(aud);
+    });
+}
+exports.getIDToken = getIDToken;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -1014,6 +1032,90 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
+/***/ 8041:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OidcClient = void 0;
+const http_client_1 = __nccwpck_require__(9925);
+const auth_1 = __nccwpck_require__(3702);
+const core_1 = __nccwpck_require__(2186);
+class OidcClient {
+    static createHttpClient(allowRetry = true, maxRetry = 10) {
+        const requestOptions = {
+            allowRetries: allowRetry,
+            maxRetries: maxRetry
+        };
+        return new http_client_1.HttpClient('actions/oidc-client', [new auth_1.BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
+    }
+    static getRequestToken() {
+        const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+        if (!token) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_TOKEN env variable');
+        }
+        return token;
+    }
+    static getIDTokenUrl() {
+        const runtimeUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
+        if (!runtimeUrl) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable');
+        }
+        return runtimeUrl;
+    }
+    static getCall(id_token_url) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const httpclient = OidcClient.createHttpClient();
+            const res = yield httpclient
+                .getJson(id_token_url)
+                .catch(error => {
+                throw new Error(`Failed to get ID Token. \n 
+        Error Code : ${error.statusCode}\n 
+        Error Message: ${error.result.message}`);
+            });
+            const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
+            if (!id_token) {
+                throw new Error('Response json body do not have ID Token field');
+            }
+            return id_token;
+        });
+    }
+    static getIDToken(audience) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // New ID Token is requested from action service
+                let id_token_url = OidcClient.getIDTokenUrl();
+                if (audience) {
+                    const encodedAudience = encodeURIComponent(audience);
+                    id_token_url = `${id_token_url}&audience=${encodedAudience}`;
+                }
+                core_1.debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_1.setSecret(id_token);
+                return id_token;
+            }
+            catch (error) {
+                throw new Error(`Error message: ${error.message}`);
+            }
+        });
+    }
+}
+exports.OidcClient = OidcClient;
+//# sourceMappingURL=oidc-utils.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -1022,7 +1124,7 @@ exports.issueCommand = issueCommand;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.toCommandValue = void 0;
+exports.toCommandProperties = exports.toCommandValue = void 0;
 /**
  * Sanitizes an input into a string so it can be passed into issueCommand safely
  * @param input input to sanitize into a string
@@ -1037,6 +1139,26 @@ function toCommandValue(input) {
     return JSON.stringify(input);
 }
 exports.toCommandValue = toCommandValue;
+/**
+ *
+ * @param annotationProperties
+ * @returns The command properties to send with the actual annotation command
+ * See IssueCommandProperties: https://github.com/actions/runner/blob/main/src/Runner.Worker/ActionCommandManager.cs#L646
+ */
+function toCommandProperties(annotationProperties) {
+    if (!Object.keys(annotationProperties).length) {
+        return {};
+    }
+    return {
+        title: annotationProperties.title,
+        file: annotationProperties.file,
+        line: annotationProperties.startLine,
+        endLine: annotationProperties.endLine,
+        col: annotationProperties.startColumn,
+        endColumn: annotationProperties.endColumn
+    };
+}
+exports.toCommandProperties = toCommandProperties;
 //# sourceMappingURL=utils.js.map
 
 /***/ }),
@@ -1988,6 +2110,72 @@ function getOctokitOptions(token, options) {
 }
 exports.getOctokitOptions = getOctokitOptions;
 //# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 3702:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class BasicCredentialHandler {
+    constructor(username, password) {
+        this.username = username;
+        this.password = password;
+    }
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' +
+                Buffer.from(this.username + ':' + this.password).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BasicCredentialHandler = BasicCredentialHandler;
+class BearerCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BearerCredentialHandler = BearerCredentialHandler;
+class PersonalAccessTokenCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
+
 
 /***/ }),
 
@@ -8512,7 +8700,7 @@ class Parser extends Transform {
         const date = Date.parse(value)
         return !isNaN(date) ? new Date(date) : value
       }
-    }else if(typeof options.cast_date !== 'function'){
+    }else{
       throw new CsvError('CSV_INVALID_OPTION_CAST_DATE', [
         'Invalid option cast_date:', 'cast_date must be true or a function,',
         `got ${JSON.stringify(options.cast_date)}`
@@ -8848,6 +9036,7 @@ class Parser extends Transform {
       }
     }
     this.info = {
+      bytes: 0,
       comment_lines: 0,
       empty_lines: 0,
       invalid_field_length: 0,
@@ -8857,6 +9046,7 @@ class Parser extends Transform {
     this.options = options
     this.state = {
       bomSkipped: false,
+      bufBytesStart: 0,
       castField: fnCastField,
       commenting: false,
       // Current error encountered by a record
@@ -8943,7 +9133,9 @@ class Parser extends Transform {
         for(let encoding in boms){
           if(boms[encoding].compare(buf, 0, boms[encoding].length) === 0){
             // Skip BOM
-            buf = buf.slice(boms[encoding].length)
+            let bomLength = boms[encoding].length
+            this.state.bufBytesStart += bomLength
+            buf = buf.slice(bomLength)
             // Renormalize original options with the new encoding
             this.__normalizeOptions({...this.__originalOptions, encoding: encoding})
             break
@@ -9083,8 +9275,10 @@ class Parser extends Transform {
                 pos += recordDelimiterLength - 1
                 continue
               }
+              this.info.bytes = this.state.bufBytesStart + pos;
               const errField = this.__onField()
               if(errField !== undefined) return errField
+              this.info.bytes = this.state.bufBytesStart + pos + recordDelimiterLength;
               const errRecord = this.__onRecord()
               if(errRecord !== undefined) return errRecord
               if(to !== -1 && this.info.records >= to){
@@ -9107,6 +9301,7 @@ class Parser extends Transform {
           }
           let delimiterLength = this.__isDelimiter(buf, pos, chr)
           if(delimiterLength !== 0){
+            this.info.bytes = this.state.bufBytesStart + pos;
             const errField = this.__onField()
             if(errField !== undefined) return errField
             pos += delimiterLength - 1
@@ -9156,6 +9351,7 @@ class Parser extends Transform {
       }else{
         // Skip last line if it has no characters
         if(this.state.wasQuoting === true || this.state.record.length !== 0 || this.state.field.length !== 0){
+          this.info.bytes = this.state.bufBytesStart + pos;
           const errField = this.__onField()
           if(errField !== undefined) return errField
           const errRecord = this.__onRecord()
@@ -9167,6 +9363,7 @@ class Parser extends Transform {
         }
       }
     }else{
+      this.state.bufBytesStart += pos
       this.state.previousBuf = buf.slice(pos)
     }
     if(this.state.wasRowDelimiter === true){
@@ -9581,7 +9778,7 @@ const parse = function(){
       throw new CsvError('CSV_INVALID_ARGUMENT', [
         'Invalid argument:',
         `got ${JSON.stringify(argument)} at index ${i}`
-      ], this.options)
+      ], options || {})
     }
   }
   const parser = new Parser(options)
@@ -11857,7 +12054,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("assert");;
+module.exports = require("assert");
 
 /***/ }),
 
@@ -11865,7 +12062,7 @@ module.exports = require("assert");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("child_process");;
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -11873,7 +12070,7 @@ module.exports = require("child_process");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("crypto");;
+module.exports = require("crypto");
 
 /***/ }),
 
@@ -11881,7 +12078,7 @@ module.exports = require("crypto");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("events");;
+module.exports = require("events");
 
 /***/ }),
 
@@ -11889,7 +12086,7 @@ module.exports = require("events");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("fs");;
+module.exports = require("fs");
 
 /***/ }),
 
@@ -11897,7 +12094,7 @@ module.exports = require("fs");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("http");;
+module.exports = require("http");
 
 /***/ }),
 
@@ -11905,7 +12102,7 @@ module.exports = require("http");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("https");;
+module.exports = require("https");
 
 /***/ }),
 
@@ -11913,7 +12110,7 @@ module.exports = require("https");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("net");;
+module.exports = require("net");
 
 /***/ }),
 
@@ -11921,7 +12118,7 @@ module.exports = require("net");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("os");;
+module.exports = require("os");
 
 /***/ }),
 
@@ -11929,7 +12126,7 @@ module.exports = require("os");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("path");;
+module.exports = require("path");
 
 /***/ }),
 
@@ -11937,7 +12134,7 @@ module.exports = require("path");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("stream");;
+module.exports = require("stream");
 
 /***/ }),
 
@@ -11945,7 +12142,7 @@ module.exports = require("stream");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("string_decoder");;
+module.exports = require("string_decoder");
 
 /***/ }),
 
@@ -11953,7 +12150,7 @@ module.exports = require("string_decoder");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("timers");;
+module.exports = require("timers");
 
 /***/ }),
 
@@ -11961,7 +12158,7 @@ module.exports = require("timers");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("tls");;
+module.exports = require("tls");
 
 /***/ }),
 
@@ -11969,7 +12166,7 @@ module.exports = require("tls");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("url");;
+module.exports = require("url");
 
 /***/ }),
 
@@ -11977,7 +12174,7 @@ module.exports = require("url");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("util");;
+module.exports = require("util");
 
 /***/ }),
 
@@ -11985,7 +12182,7 @@ module.exports = require("util");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("zlib");;
+module.exports = require("zlib");
 
 /***/ })
 
@@ -12024,7 +12221,9 @@ module.exports = require("zlib");;
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";/************************************************************************/
+/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
+/******/ 	
+/************************************************************************/
 /******/ 	
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
