@@ -28,7 +28,7 @@
     "@actions/tool-cache": "^1.7.1",
     "@octokit/webhooks-definitions": "^3.67.3",
     "@tradeshift/actions-exec": "^1.0.2",
-    "csv-parse": "^4.16.3"
+    "csv-parse": "^5.0.3"
   },
   "devDependencies": {
     "@types/jest": "^27.0.3",
