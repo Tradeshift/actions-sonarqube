@@ -1,4 +1,4 @@
-import csvparse from 'csv-parse/lib/sync';
+import csvparse from 'csv-parse/sync';
 import * as core from '@actions/core';
 
 export interface Inputs {
@@ -39,10 +39,10 @@ export async function getInputList(
     return res;
   }
 
-  const parsed: string[][] = await csvparse(items, {
+  const parsed: string[][] = await csvparse.parse(items, {
     columns: false,
     relaxColumnCount: true,
-    skipLinesWithEmptyValues: true
+    skipEmptyLines: true
   });
 
   for (const output of parsed) {
