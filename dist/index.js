@@ -1,5 +1,4 @@
-require('./sourcemap-register.js');module.exports =
-/******/ (() => { // webpackBootstrap
+require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 4133:
@@ -11,7 +10,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.create = void 0;
 const core_1 = __nccwpck_require__(2186);
 function create(inputs, sonarHost, ctx, sha) {
-    core_1.startGroup('Building Sonar arguments');
+    (0, core_1.startGroup)('Building Sonar arguments');
     const args = [
         `-Dsonar.login=${inputs.token}`,
         '-Dsonar.sourceEncoding=UTF-8',
@@ -21,17 +20,17 @@ function create(inputs, sonarHost, ctx, sha) {
     ];
     if (ctx.eventName === 'pull_request') {
         const payload = ctx.payload;
-        core_1.info(`Running pull request analysis. PR: ${payload.pull_request.number}`);
+        (0, core_1.info)(`Running pull request analysis. PR: ${payload.pull_request.number}`);
         args.push(`-Dsonar.pullrequest.key=${payload.pull_request.number}`, `-Dsonar.pullrequest.branch=${payload.pull_request.head.ref}`, `-Dsonar.pullrequest.base=${payload.pull_request.base.ref}`, `-Dsonar.pullrequest.github.repository=${ctx.repo.owner}/${ctx.repo.repo}`);
     }
     else {
-        core_1.info(`Running branch analysis. Branch: ${ctx.ref}`);
+        (0, core_1.info)(`Running branch analysis. Branch: ${ctx.ref}`);
         args.push(`-Dsonar.branch.name=${ctx.ref.replace(/^(refs\/heads\/)/, '')}`);
     }
     if (inputs.args) {
         args.push(...inputs.args);
     }
-    core_1.endGroup();
+    (0, core_1.endGroup)();
     return args;
 }
 exports.create = create;
@@ -58,7 +57,7 @@ exports.headSHA = void 0;
 const actions_exec_1 = __nccwpck_require__(291);
 function headSHA() {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield actions_exec_1.exec('git', ['rev-parse', 'HEAD'], true);
+        const res = yield (0, actions_exec_1.exec)('git', ['rev-parse', 'HEAD'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get git head sha: ${res.stderr}`);
         }
@@ -108,7 +107,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputList = exports.getInputs = void 0;
-const sync_1 = __importDefault(__nccwpck_require__(8750));
+const sync_1 = __importDefault(__nccwpck_require__(8318));
 const core = __importStar(__nccwpck_require__(2186));
 function getInputs() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -134,10 +133,10 @@ function getInputList(name, ignoreComma = false) {
         if (items === '') {
             return res;
         }
-        const parsed = yield sync_1.default(items, {
+        const parsed = yield sync_1.default.parse(items, {
             columns: false,
             relaxColumnCount: true,
-            skipLinesWithEmptyValues: true
+            skipEmptyLines: true
         });
         for (const output of parsed) {
             if (output.length === 1) {
@@ -201,6 +200,7 @@ const sonarScanner = __importStar(__nccwpck_require__(6789));
 const maven = __importStar(__nccwpck_require__(1613));
 const state = __importStar(__nccwpck_require__(9249));
 const args = __importStar(__nccwpck_require__(4133));
+const pr_1 = __nccwpck_require__(515);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -209,7 +209,8 @@ function run() {
                 return;
             }
             state.setIsPost();
-            const inputs = yield inputs_1.getInputs();
+            state.setActionStartedAt(new Date());
+            const inputs = yield (0, inputs_1.getInputs)();
             if (!inputs.host) {
                 throw new Error(`host is required`);
             }
@@ -217,7 +218,7 @@ function run() {
             if (inputs.clientCert) {
                 sonarHost = yield proxy.start(inputs);
             }
-            const sha = yield git_1.headSHA();
+            const sha = yield (0, git_1.headSHA)();
             const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
             switch (inputs.scanner) {
                 case 'sonar-scanner':
@@ -234,12 +235,15 @@ function run() {
             }
         }
         catch (error) {
-            core_1.setFailed(error.message);
+            (0, core_1.setFailed)(error.message);
         }
     });
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
+        if (state.actionStartedAt) {
+            yield (0, pr_1.removeCommentsOlderThan)(state.actionStartedAt);
+        }
         if (state.proxyContainer) {
             yield proxy.stop(state.proxyContainer);
         }
@@ -270,15 +274,71 @@ const core_1 = __nccwpck_require__(2186);
 const actions_exec_1 = __nccwpck_require__(291);
 function run(args) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Running Maven SonarScanner');
-        const res = yield actions_exec_1.exec('mvn', ['-B', 'sonar:sonar'].concat(args), false);
+        (0, core_1.startGroup)('Running Maven SonarScanner');
+        const res = yield (0, actions_exec_1.exec)('mvn', ['-B', 'sonar:sonar'].concat(args), false);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`failed maven execution: ${res.stderr}`);
         }
-        core_1.endGroup();
+        (0, core_1.endGroup)();
     });
 }
 exports.run = run;
+
+
+/***/ }),
+
+/***/ 515:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.removeCommentsOlderThan = void 0;
+const core_1 = __nccwpck_require__(2186);
+const github_1 = __nccwpck_require__(5438);
+function removeCommentsOlderThan(deletionCutoff) {
+    var _a, _b, _c;
+    return __awaiter(this, void 0, void 0, function* () {
+        const token = (0, core_1.getInput)('github-token');
+        // guard against running on master / without token
+        if (!((_a = github_1.context.issue) === null || _a === void 0 ? void 0 : _a.number)) {
+            (0, core_1.info)(`${(_b = github_1.context.issue) === null || _b === void 0 ? void 0 : _b.number}`);
+            (0, core_1.info)(`Skipping comment cleanup on non-pr build`);
+            return;
+        }
+        if (!token) {
+            (0, core_1.info)(`Skipping comment cleanup, no github-token provided`);
+            return;
+        }
+        const github = (0, github_1.getOctokit)(token);
+        const comments = yield github.paginate(github.rest.issues.listComments, {
+            issue_number: github_1.context.issue.number,
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo
+        });
+        for (const comment of comments) {
+            if (((_c = comment.user) === null || _c === void 0 ? void 0 : _c.login) === 'ts-sonarqube[bot]' &&
+                new Date(comment.created_at) < deletionCutoff) {
+                (0, core_1.info)(`Deleting comment ${comment.id} by ${comment.user.login}`);
+                yield github.rest.issues.deleteComment({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    comment_id: comment.id
+                });
+            }
+        }
+    });
+}
+exports.removeCommentsOlderThan = removeCommentsOlderThan;
 
 
 /***/ }),
@@ -304,7 +364,7 @@ const actions_exec_1 = __nccwpck_require__(291);
 const state_1 = __nccwpck_require__(9249);
 function start(inputs) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Starting sonar proxy');
+        (0, core_1.startGroup)('Starting sonar proxy');
         if (!inputs.sonarProxyImage) {
             throw new Error('sonar-proxy-image is required');
         }
@@ -331,28 +391,28 @@ function start(inputs) {
             `SONAR_HOST=${inputs.host}`,
             inputs.sonarProxyImage
         ];
-        const res = yield actions_exec_1.exec('docker', args, true);
+        const res = yield (0, actions_exec_1.exec)('docker', args, true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not start sonar proxy container: ${res.stderr}`);
         }
         const containerID = res.stdout.trim();
-        state_1.setProxyContainer(containerID);
+        (0, state_1.setProxyContainer)(containerID);
         const proxyIP = yield getIP(containerID);
         const host = `http://${proxyIP}:9000`;
-        core_1.info(`Proxy container: ${containerID}`);
-        core_1.info(`Proxy container IP: ${proxyIP}`);
-        core_1.info(`Proxy container host: ${host}`);
-        core_1.endGroup();
+        (0, core_1.info)(`Proxy container: ${containerID}`);
+        (0, core_1.info)(`Proxy container IP: ${proxyIP}`);
+        (0, core_1.info)(`Proxy container host: ${host}`);
+        (0, core_1.endGroup)();
         return host;
     });
 }
 exports.start = start;
 function stop(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.info('Stopping sonar proxy');
-        const res = yield actions_exec_1.exec('docker', ['stop', containerID], false);
+        (0, core_1.info)('Stopping sonar proxy');
+        const res = yield (0, actions_exec_1.exec)('docker', ['stop', containerID], false);
         if (res.stderr !== '' && !res.success) {
-            core_1.warning(`could not stop sonar proxy: ${res.stderr}`);
+            (0, core_1.warning)(`could not stop sonar proxy: ${res.stderr}`);
         }
         return;
     });
@@ -360,11 +420,11 @@ function stop(containerID) {
 exports.stop = stop;
 function getIP(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield actions_exec_1.exec('docker', ['inspect', containerID], true);
+        const res = yield (0, actions_exec_1.exec)('docker', ['inspect', containerID], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error('could not inspect docker container');
         }
-        core_1.debug(res.stdout.trim());
+        (0, core_1.debug)(res.stdout.trim());
         const obj = JSON.parse(res.stdout.trim());
         if (!obj || !obj[0].NetworkSettings.Networks.bridge.IPAddress) {
             throw new Error('ip adress of proxy container could not be determined');
@@ -420,12 +480,12 @@ function run(version, args) {
         if (!(yield isAvailable(version))) {
             yield install(version);
         }
-        core_1.startGroup('Running SonarScanner');
-        const res = yield actions_exec_1.exec('sonar-scanner', args, false);
+        (0, core_1.startGroup)('Running SonarScanner');
+        const res = yield (0, actions_exec_1.exec)('sonar-scanner', args, false);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`failed sonar scanner execution: ${res.stderr}`);
         }
-        core_1.endGroup();
+        (0, core_1.endGroup)();
     });
 }
 exports.run = run;
@@ -433,13 +493,13 @@ function isAvailable(version) {
     return __awaiter(this, void 0, void 0, function* () {
         let sonarScannerPath;
         try {
-            sonarScannerPath = yield io_1.which('sonar-scanner', true);
+            sonarScannerPath = yield (0, io_1.which)('sonar-scanner', true);
         }
         catch (_a) {
             return false;
         }
-        core_1.debug(`found sonar-scanner on path: ${sonarScannerPath}`);
-        const res = yield actions_exec_1.exec(sonarScannerPath, ['--version'], true);
+        (0, core_1.debug)(`found sonar-scanner on path: ${sonarScannerPath}`);
+        const res = yield (0, actions_exec_1.exec)(sonarScannerPath, ['--version'], true);
         if (res.stderr !== '' && !res.success) {
             throw new Error(`could not get sonar version: ${res.stderr}`);
         }
@@ -447,29 +507,29 @@ function isAvailable(version) {
         if (!matches) {
             throw new Error(`could not extract sonar version from output: ${res.stdout}`);
         }
-        core_1.debug(`${sonarScannerPath} version: ${matches[1]}`);
+        (0, core_1.debug)(`${sonarScannerPath} version: ${matches[1]}`);
         return matches[1] === version;
     });
 }
 function install(version) {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.startGroup('Installing SonarScanner');
+        (0, core_1.startGroup)('Installing SonarScanner');
         let sonarDirectory = tc.find('sonar-scanner', version);
         if (!sonarDirectory) {
-            core_1.info(`SonarScanner version ${version} not found in cache. Downloading...`);
+            (0, core_1.info)(`SonarScanner version ${version} not found in cache. Downloading...`);
             sonarDirectory = yield download(version);
         }
-        core_1.addPath(`${sonarDirectory}/sonar-scanner-${version}-linux/bin`);
-        core_1.info(`Successfully installed SonarScanner ${version}`);
-        core_1.endGroup();
+        (0, core_1.addPath)(`${sonarDirectory}/sonar-scanner-${version}-linux/bin`);
+        (0, core_1.info)(`Successfully installed SonarScanner ${version}`);
+        (0, core_1.endGroup)();
     });
 }
 function download(version) {
     return __awaiter(this, void 0, void 0, function* () {
         const sonarPath = yield tc.downloadTool(`https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${version}-linux.zip`);
-        core_1.info('Extracting');
+        (0, core_1.info)('Extracting');
         const sonarExtractedPath = yield tc.extractZip(sonarPath);
-        core_1.info('Saving to cache');
+        (0, core_1.info)('Saving to cache');
         const sonarCachedPath = yield tc.cacheDir(sonarExtractedPath, 'sonar-scanner', version);
         return sonarCachedPath;
     });
@@ -484,18 +544,23 @@ function download(version) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setProxyContainer = exports.setIsPost = exports.proxyContainer = exports.isPost = void 0;
+exports.setActionStartedAt = exports.setProxyContainer = exports.setIsPost = exports.actionStartedAt = exports.proxyContainer = exports.isPost = void 0;
 const core_1 = __nccwpck_require__(2186);
-exports.isPost = core_1.getState('isPost') === 'true';
-exports.proxyContainer = core_1.getState('proxyContainer');
+exports.isPost = (0, core_1.getState)('isPost') === 'true';
+exports.proxyContainer = (0, core_1.getState)('proxyContainer');
+exports.actionStartedAt = new Date((0, core_1.getState)('actionStartedAt'));
 function setIsPost() {
-    core_1.saveState('isPost', 'true');
+    (0, core_1.saveState)('isPost', 'true');
 }
 exports.setIsPost = setIsPost;
 function setProxyContainer(id) {
-    core_1.saveState('proxyContainer', id);
+    (0, core_1.saveState)('proxyContainer', id);
 }
 exports.setProxyContainer = setProxyContainer;
+function setActionStartedAt(date) {
+    (0, core_1.saveState)('actionStartedAt', date.toJSON());
+}
+exports.setActionStartedAt = setActionStartedAt;
 
 
 /***/ }),
@@ -505,14 +570,27 @@ exports.setProxyContainer = setProxyContainer;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.issue = exports.issueCommand = void 0;
 const os = __importStar(__nccwpck_require__(2087));
 const utils_1 = __nccwpck_require__(5278);
 /**
@@ -591,6 +669,25 @@ function escapeProperty(s) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -600,19 +697,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -674,7 +766,9 @@ function addPath(inputPath) {
 }
 exports.addPath = addPath;
 /**
- * Gets the value of an input.  The value is also trimmed.
+ * Gets the value of an input.
+ * Unless trimWhitespace is set to false in InputOptions, the value is also trimmed.
+ * Returns an empty string if the value is not defined.
  *
  * @param     name     name of the input to get
  * @param     options  optional. See InputOptions.
@@ -685,9 +779,49 @@ function getInput(name, options) {
     if (options && options.required && !val) {
         throw new Error(`Input required and not supplied: ${name}`);
     }
+    if (options && options.trimWhitespace === false) {
+        return val;
+    }
     return val.trim();
 }
 exports.getInput = getInput;
+/**
+ * Gets the values of an multiline input.  Each value is also trimmed.
+ *
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   string[]
+ *
+ */
+function getMultilineInput(name, options) {
+    const inputs = getInput(name, options)
+        .split('\n')
+        .filter(x => x !== '');
+    return inputs;
+}
+exports.getMultilineInput = getMultilineInput;
+/**
+ * Gets the input value of the boolean type in the YAML 1.2 "core schema" specification.
+ * Support boolean input list: `true | True | TRUE | false | False | FALSE` .
+ * The return value is also in boolean type.
+ * ref: https://yaml.org/spec/1.2/spec.html#id2804923
+ *
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   boolean
+ */
+function getBooleanInput(name, options) {
+    const trueValue = ['true', 'True', 'TRUE'];
+    const falseValue = ['false', 'False', 'FALSE'];
+    const val = getInput(name, options);
+    if (trueValue.includes(val))
+        return true;
+    if (falseValue.includes(val))
+        return false;
+    throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}\n` +
+        `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
+exports.getBooleanInput = getBooleanInput;
 /**
  * Sets the value of an output.
  *
@@ -696,6 +830,7 @@ exports.getInput = getInput;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
+    process.stdout.write(os.EOL);
     command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
@@ -742,19 +877,30 @@ exports.debug = debug;
 /**
  * Adds an error issue
  * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function error(message) {
-    command_1.issue('error', message instanceof Error ? message.toString() : message);
+function error(message, properties = {}) {
+    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
- * Adds an warning issue
+ * Adds a warning issue
  * @param message warning issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
  */
-function warning(message) {
-    command_1.issue('warning', message instanceof Error ? message.toString() : message);
+function warning(message, properties = {}) {
+    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
+/**
+ * Adds a notice issue
+ * @param message notice issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+function notice(message, properties = {}) {
+    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
+exports.notice = notice;
 /**
  * Writes info to log with console.log.
  * @param message info message
@@ -827,6 +973,12 @@ function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
 exports.getState = getState;
+function getIDToken(aud) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield oidc_utils_1.OidcClient.getIDToken(aud);
+    });
+}
+exports.getIDToken = getIDToken;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -837,14 +989,27 @@ exports.getState = getState;
 "use strict";
 
 // For internal use, subject to change.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.issueCommand = void 0;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fs = __importStar(__nccwpck_require__(5747));
@@ -867,6 +1032,90 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
+/***/ 8041:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OidcClient = void 0;
+const http_client_1 = __nccwpck_require__(9925);
+const auth_1 = __nccwpck_require__(3702);
+const core_1 = __nccwpck_require__(2186);
+class OidcClient {
+    static createHttpClient(allowRetry = true, maxRetry = 10) {
+        const requestOptions = {
+            allowRetries: allowRetry,
+            maxRetries: maxRetry
+        };
+        return new http_client_1.HttpClient('actions/oidc-client', [new auth_1.BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
+    }
+    static getRequestToken() {
+        const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+        if (!token) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_TOKEN env variable');
+        }
+        return token;
+    }
+    static getIDTokenUrl() {
+        const runtimeUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
+        if (!runtimeUrl) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable');
+        }
+        return runtimeUrl;
+    }
+    static getCall(id_token_url) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const httpclient = OidcClient.createHttpClient();
+            const res = yield httpclient
+                .getJson(id_token_url)
+                .catch(error => {
+                throw new Error(`Failed to get ID Token. \n 
+        Error Code : ${error.statusCode}\n 
+        Error Message: ${error.result.message}`);
+            });
+            const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
+            if (!id_token) {
+                throw new Error('Response json body do not have ID Token field');
+            }
+            return id_token;
+        });
+    }
+    static getIDToken(audience) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // New ID Token is requested from action service
+                let id_token_url = OidcClient.getIDTokenUrl();
+                if (audience) {
+                    const encodedAudience = encodeURIComponent(audience);
+                    id_token_url = `${id_token_url}&audience=${encodedAudience}`;
+                }
+                core_1.debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_1.setSecret(id_token);
+                return id_token;
+            }
+            catch (error) {
+                throw new Error(`Error message: ${error.message}`);
+            }
+        });
+    }
+}
+exports.OidcClient = OidcClient;
+//# sourceMappingURL=oidc-utils.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -875,6 +1124,7 @@ exports.issueCommand = issueCommand;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.toCommandProperties = exports.toCommandValue = void 0;
 /**
  * Sanitizes an input into a string so it can be passed into issueCommand safely
  * @param input input to sanitize into a string
@@ -889,6 +1139,26 @@ function toCommandValue(input) {
     return JSON.stringify(input);
 }
 exports.toCommandValue = toCommandValue;
+/**
+ *
+ * @param annotationProperties
+ * @returns The command properties to send with the actual annotation command
+ * See IssueCommandProperties: https://github.com/actions/runner/blob/main/src/Runner.Worker/ActionCommandManager.cs#L646
+ */
+function toCommandProperties(annotationProperties) {
+    if (!Object.keys(annotationProperties).length) {
+        return {};
+    }
+    return {
+        title: annotationProperties.title,
+        file: annotationProperties.file,
+        line: annotationProperties.startLine,
+        endLine: annotationProperties.endLine,
+        col: annotationProperties.startColumn,
+        endColumn: annotationProperties.endColumn
+    };
+}
+exports.toCommandProperties = toCommandProperties;
 //# sourceMappingURL=utils.js.map
 
 /***/ }),
@@ -898,6 +1168,25 @@ exports.toCommandValue = toCommandValue;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -907,14 +1196,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getExecOutput = exports.exec = void 0;
+const string_decoder_1 = __nccwpck_require__(4304);
 const tr = __importStar(__nccwpck_require__(8159));
 /**
  * Exec a command.
@@ -940,6 +1224,51 @@ function exec(commandLine, args, options) {
     });
 }
 exports.exec = exec;
+/**
+ * Exec a command and get the output.
+ * Output will be streamed to the live console.
+ * Returns promise with the exit code and collected stdout and stderr
+ *
+ * @param     commandLine           command to execute (can include additional args). Must be correctly escaped.
+ * @param     args                  optional arguments for tool. Escaping is handled by the lib.
+ * @param     options               optional exec options.  See ExecOptions
+ * @returns   Promise<ExecOutput>   exit code, stdout, and stderr
+ */
+function getExecOutput(commandLine, args, options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdout = '';
+        let stderr = '';
+        //Using string decoder covers the case where a mult-byte character is split
+        const stdoutDecoder = new string_decoder_1.StringDecoder('utf8');
+        const stderrDecoder = new string_decoder_1.StringDecoder('utf8');
+        const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
+        const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
+        const stdErrListener = (data) => {
+            stderr += stderrDecoder.write(data);
+            if (originalStdErrListener) {
+                originalStdErrListener(data);
+            }
+        };
+        const stdOutListener = (data) => {
+            stdout += stdoutDecoder.write(data);
+            if (originalStdoutListener) {
+                originalStdoutListener(data);
+            }
+        };
+        const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
+        const exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+        //flush any remaining characters
+        stdout += stdoutDecoder.end();
+        stderr += stderrDecoder.end();
+        return {
+            exitCode,
+            stdout,
+            stderr
+        };
+    });
+}
+exports.getExecOutput = getExecOutput;
 //# sourceMappingURL=exec.js.map
 
 /***/ }),
@@ -949,6 +1278,25 @@ exports.exec = exec;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -958,20 +1306,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.argStringToArray = exports.ToolRunner = void 0;
 const os = __importStar(__nccwpck_require__(2087));
 const events = __importStar(__nccwpck_require__(8614));
 const child = __importStar(__nccwpck_require__(3129));
 const path = __importStar(__nccwpck_require__(5622));
 const io = __importStar(__nccwpck_require__(7436));
 const ioUtil = __importStar(__nccwpck_require__(1962));
+const timers_1 = __nccwpck_require__(8213);
 /* eslint-disable @typescript-eslint/unbound-method */
 const IS_WINDOWS = process.platform === 'win32';
 /*
@@ -1041,11 +1384,12 @@ class ToolRunner extends events.EventEmitter {
                 s = s.substring(n + os.EOL.length);
                 n = s.indexOf(os.EOL);
             }
-            strBuffer = s;
+            return s;
         }
         catch (err) {
             // streaming lines to console is best effort.  Don't fail a build.
             this._debug(`error processing line. Failed with error ${err}`);
+            return '';
         }
     }
     _getSpawnFileName() {
@@ -1327,7 +1671,7 @@ class ToolRunner extends events.EventEmitter {
             // if the tool is only a file name, then resolve it from the PATH
             // otherwise verify it exists (add extension on Windows if necessary)
             this.toolPath = yield io.which(this.toolPath, true);
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 this._debug(`exec tool: ${this.toolPath}`);
                 this._debug('arguments:');
                 for (const arg of this.args) {
@@ -1341,9 +1685,12 @@ class ToolRunner extends events.EventEmitter {
                 state.on('debug', (message) => {
                     this._debug(message);
                 });
+                if (this.options.cwd && !(yield ioUtil.exists(this.options.cwd))) {
+                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
+                }
                 const fileName = this._getSpawnFileName();
                 const cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
-                const stdbuffer = '';
+                let stdbuffer = '';
                 if (cp.stdout) {
                     cp.stdout.on('data', (data) => {
                         if (this.options.listeners && this.options.listeners.stdout) {
@@ -1352,14 +1699,14 @@ class ToolRunner extends events.EventEmitter {
                         if (!optionsNonNull.silent && optionsNonNull.outStream) {
                             optionsNonNull.outStream.write(data);
                         }
-                        this._processLineBuffer(data, stdbuffer, (line) => {
+                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
                             if (this.options.listeners && this.options.listeners.stdline) {
                                 this.options.listeners.stdline(line);
                             }
                         });
                     });
                 }
-                const errbuffer = '';
+                let errbuffer = '';
                 if (cp.stderr) {
                     cp.stderr.on('data', (data) => {
                         state.processStderr = true;
@@ -1374,7 +1721,7 @@ class ToolRunner extends events.EventEmitter {
                                 : optionsNonNull.outStream;
                             s.write(data);
                         }
-                        this._processLineBuffer(data, errbuffer, (line) => {
+                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
                             if (this.options.listeners && this.options.listeners.errline) {
                                 this.options.listeners.errline(line);
                             }
@@ -1421,7 +1768,7 @@ class ToolRunner extends events.EventEmitter {
                     }
                     cp.stdin.end(this.options.input);
                 }
-            });
+            }));
         });
     }
 }
@@ -1507,7 +1854,7 @@ class ExecState extends events.EventEmitter {
             this._setResult();
         }
         else if (this.processExited) {
-            this.timeout = setTimeout(ExecState.HandleTimeout, this.delay, this);
+            this.timeout = timers_1.setTimeout(ExecState.HandleTimeout, this.delay, this);
         }
     }
     _debug(message) {
@@ -1565,6 +1912,7 @@ class Context {
      * Hydrate the context from the environment
      */
     constructor() {
+        var _a, _b, _c;
         this.payload = {};
         if (process.env.GITHUB_EVENT_PATH) {
             if (fs_1.existsSync(process.env.GITHUB_EVENT_PATH)) {
@@ -1584,6 +1932,9 @@ class Context {
         this.job = process.env.GITHUB_JOB;
         this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
         this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
+        this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== void 0 ? _a : `https://api.github.com`;
+        this.serverUrl = (_b = process.env.GITHUB_SERVER_URL) !== null && _b !== void 0 ? _b : `https://github.com`;
+        this.graphqlUrl = (_c = process.env.GITHUB_GRAPHQL_URL) !== null && _c !== void 0 ? _c : `https://api.github.com/graphql`;
     }
     get issue() {
         const payload = this.payload;
@@ -1628,7 +1979,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1671,7 +2022,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1721,7 +2072,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1759,6 +2110,72 @@ function getOctokitOptions(token, options) {
 }
 exports.getOctokitOptions = getOctokitOptions;
 //# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 3702:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class BasicCredentialHandler {
+    constructor(username, password) {
+        this.username = username;
+        this.password = password;
+    }
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' +
+                Buffer.from(this.username + ':' + this.password).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BasicCredentialHandler = BasicCredentialHandler;
+class BearerCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BearerCredentialHandler = BearerCredentialHandler;
+class PersonalAccessTokenCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
+
 
 /***/ }),
 
@@ -2195,7 +2612,9 @@ class HttpClient {
                 maxSockets: maxSockets,
                 keepAlive: this._keepAlive,
                 proxy: {
-                    proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`,
+                    ...((proxyUrl.username || proxyUrl.password) && {
+                        proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`
+                    }),
                     host: proxyUrl.hostname,
                     port: proxyUrl.port
                 }
@@ -2375,6 +2794,25 @@ exports.checkBypass = checkBypass;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2386,9 +2824,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const assert_1 = __nccwpck_require__(2357);
-const fs = __nccwpck_require__(5747);
-const path = __nccwpck_require__(5622);
+exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rename = exports.readlink = exports.readdir = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 _a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
 exports.IS_WINDOWS = process.platform === 'win32';
 function exists(fsPath) {
@@ -2429,49 +2867,6 @@ function isRooted(p) {
     return p.startsWith('/');
 }
 exports.isRooted = isRooted;
-/**
- * Recursively create a directory at `fsPath`.
- *
- * This implementation is optimistic, meaning it attempts to create the full
- * path first, and backs up the path stack from there.
- *
- * @param fsPath The path to create
- * @param maxDepth The maximum recursion depth
- * @param depth The current recursion depth
- */
-function mkdirP(fsPath, maxDepth = 1000, depth = 1) {
-    return __awaiter(this, void 0, void 0, function* () {
-        assert_1.ok(fsPath, 'a path argument must be provided');
-        fsPath = path.resolve(fsPath);
-        if (depth >= maxDepth)
-            return exports.mkdir(fsPath);
-        try {
-            yield exports.mkdir(fsPath);
-            return;
-        }
-        catch (err) {
-            switch (err.code) {
-                case 'ENOENT': {
-                    yield mkdirP(path.dirname(fsPath), maxDepth, depth + 1);
-                    yield exports.mkdir(fsPath);
-                    return;
-                }
-                default: {
-                    let stats;
-                    try {
-                        stats = yield exports.stat(fsPath);
-                    }
-                    catch (err2) {
-                        throw err;
-                    }
-                    if (!stats.isDirectory())
-                        throw err;
-                }
-            }
-        }
-    });
-}
-exports.mkdirP = mkdirP;
 /**
  * Best effort attempt to determine whether a file exists and is executable.
  * @param filePath    file path to check
@@ -2568,6 +2963,12 @@ function isUnixExecutable(stats) {
         ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||
         ((stats.mode & 64) > 0 && stats.uid === process.getuid()));
 }
+// Get the path of cmd.exe in windows
+function getCmdPath() {
+    var _a;
+    return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
+}
+exports.getCmdPath = getCmdPath;
 //# sourceMappingURL=io-util.js.map
 
 /***/ }),
@@ -2577,6 +2978,25 @@ function isUnixExecutable(stats) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2587,11 +3007,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const childProcess = __nccwpck_require__(3129);
-const path = __nccwpck_require__(5622);
+exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
+const assert_1 = __nccwpck_require__(2357);
+const childProcess = __importStar(__nccwpck_require__(3129));
+const path = __importStar(__nccwpck_require__(5622));
 const util_1 = __nccwpck_require__(1669);
-const ioUtil = __nccwpck_require__(1962);
+const ioUtil = __importStar(__nccwpck_require__(1962));
 const exec = util_1.promisify(childProcess.exec);
+const execFile = util_1.promisify(childProcess.execFile);
 /**
  * Copies a file or folder.
  * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
@@ -2602,14 +3025,14 @@ const exec = util_1.promisify(childProcess.exec);
  */
 function cp(source, dest, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { force, recursive } = readCopyOptions(options);
+        const { force, recursive, copySourceDirectory } = readCopyOptions(options);
         const destStat = (yield ioUtil.exists(dest)) ? yield ioUtil.stat(dest) : null;
         // Dest is an existing file, but not forcing
         if (destStat && destStat.isFile() && !force) {
             return;
         }
         // If dest is an existing directory, should copy inside.
-        const newDest = destStat && destStat.isDirectory()
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory
             ? path.join(dest, path.basename(source))
             : dest;
         if (!(yield ioUtil.exists(source))) {
@@ -2674,12 +3097,22 @@ function rmRF(inputPath) {
         if (ioUtil.IS_WINDOWS) {
             // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
             // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
+            // Check for invalid characters
+            // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+            if (/[*"<>|]/.test(inputPath)) {
+                throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
+            }
             try {
+                const cmdPath = ioUtil.getCmdPath();
                 if (yield ioUtil.isDirectory(inputPath, true)) {
-                    yield exec(`rd /s /q "${inputPath}"`);
+                    yield exec(`${cmdPath} /s /c "rd /s /q "%inputPath%""`, {
+                        env: { inputPath }
+                    });
                 }
                 else {
-                    yield exec(`del /f /a "${inputPath}"`);
+                    yield exec(`${cmdPath} /s /c "del /f /a "%inputPath%""`, {
+                        env: { inputPath }
+                    });
                 }
             }
             catch (err) {
@@ -2712,7 +3145,7 @@ function rmRF(inputPath) {
                 return;
             }
             if (isDir) {
-                yield exec(`rm -rf "${inputPath}"`);
+                yield execFile(`rm`, [`-rf`, `${inputPath}`]);
             }
             else {
                 yield ioUtil.unlink(inputPath);
@@ -2730,7 +3163,8 @@ exports.rmRF = rmRF;
  */
 function mkdirP(fsPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield ioUtil.mkdirP(fsPath);
+        assert_1.ok(fsPath, 'a path argument must be provided');
+        yield ioUtil.mkdir(fsPath, { recursive: true });
     });
 }
 exports.mkdirP = mkdirP;
@@ -2758,62 +3192,80 @@ function which(tool, check) {
                     throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
                 }
             }
+            return result;
         }
-        try {
-            // build the list of extensions to try
-            const extensions = [];
-            if (ioUtil.IS_WINDOWS && process.env.PATHEXT) {
-                for (const extension of process.env.PATHEXT.split(path.delimiter)) {
-                    if (extension) {
-                        extensions.push(extension);
-                    }
-                }
-            }
-            // if it's rooted, return it if exists. otherwise return empty.
-            if (ioUtil.isRooted(tool)) {
-                const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
-                if (filePath) {
-                    return filePath;
-                }
-                return '';
-            }
-            // if any path separators, return empty
-            if (tool.includes('/') || (ioUtil.IS_WINDOWS && tool.includes('\\'))) {
-                return '';
-            }
-            // build the list of directories
-            //
-            // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
-            // it feels like we should not do this. Checking the current directory seems like more of a use
-            // case of a shell, and the which() function exposed by the toolkit should strive for consistency
-            // across platforms.
-            const directories = [];
-            if (process.env.PATH) {
-                for (const p of process.env.PATH.split(path.delimiter)) {
-                    if (p) {
-                        directories.push(p);
-                    }
-                }
-            }
-            // return the first match
-            for (const directory of directories) {
-                const filePath = yield ioUtil.tryGetExecutablePath(directory + path.sep + tool, extensions);
-                if (filePath) {
-                    return filePath;
-                }
-            }
-            return '';
+        const matches = yield findInPath(tool);
+        if (matches && matches.length > 0) {
+            return matches[0];
         }
-        catch (err) {
-            throw new Error(`which failed with message ${err.message}`);
-        }
+        return '';
     });
 }
 exports.which = which;
+/**
+ * Returns a list of all occurrences of the given tool on the system path.
+ *
+ * @returns   Promise<string[]>  the paths of the tool
+ */
+function findInPath(tool) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!tool) {
+            throw new Error("parameter 'tool' is required");
+        }
+        // build the list of extensions to try
+        const extensions = [];
+        if (ioUtil.IS_WINDOWS && process.env['PATHEXT']) {
+            for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
+                if (extension) {
+                    extensions.push(extension);
+                }
+            }
+        }
+        // if it's rooted, return it if exists. otherwise return empty.
+        if (ioUtil.isRooted(tool)) {
+            const filePath = yield ioUtil.tryGetExecutablePath(tool, extensions);
+            if (filePath) {
+                return [filePath];
+            }
+            return [];
+        }
+        // if any path separators, return empty
+        if (tool.includes(path.sep)) {
+            return [];
+        }
+        // build the list of directories
+        //
+        // Note, technically "where" checks the current directory on Windows. From a toolkit perspective,
+        // it feels like we should not do this. Checking the current directory seems like more of a use
+        // case of a shell, and the which() function exposed by the toolkit should strive for consistency
+        // across platforms.
+        const directories = [];
+        if (process.env.PATH) {
+            for (const p of process.env.PATH.split(path.delimiter)) {
+                if (p) {
+                    directories.push(p);
+                }
+            }
+        }
+        // find all matches
+        const matches = [];
+        for (const directory of directories) {
+            const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
+            if (filePath) {
+                matches.push(filePath);
+            }
+        }
+        return matches;
+    });
+}
+exports.findInPath = findInPath;
 function readCopyOptions(options) {
     const force = options.force == null ? true : options.force;
     const recursive = Boolean(options.recursive);
-    return { force, recursive };
+    const copySourceDirectory = options.copySourceDirectory == null
+        ? true
+        : Boolean(options.copySourceDirectory);
+    return { force, recursive, copySourceDirectory };
 }
 function cpDirRecursive(sourceDir, destDir, currentDepth, force) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -2874,6 +3326,25 @@ function copyFile(srcFile, destFile, force) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2883,14 +3354,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports._readLinuxVersionFile = exports._getOsVersion = exports._findMatch = void 0;
 const semver = __importStar(__nccwpck_require__(562));
 const core_1 = __nccwpck_require__(2186);
 // needs to be require for core node modules to be mocked
@@ -2959,8 +3424,13 @@ function _getOsVersion() {
             const lines = lsbContents.split('\n');
             for (const line of lines) {
                 const parts = line.split('=');
-                if (parts.length === 2 && parts[0].trim() === 'DISTRIB_RELEASE') {
-                    version = parts[1].trim();
+                if (parts.length === 2 &&
+                    (parts[0].trim() === 'VERSION_ID' ||
+                        parts[0].trim() === 'DISTRIB_RELEASE')) {
+                    version = parts[1]
+                        .trim()
+                        .replace(/^"/, '')
+                        .replace(/"$/, '');
                     break;
                 }
             }
@@ -2970,10 +3440,14 @@ function _getOsVersion() {
 }
 exports._getOsVersion = _getOsVersion;
 function _readLinuxVersionFile() {
-    const lsbFile = '/etc/lsb-release';
+    const lsbReleaseFile = '/etc/lsb-release';
+    const osReleaseFile = '/etc/os-release';
     let contents = '';
-    if (fs.existsSync(lsbFile)) {
-        contents = fs.readFileSync(lsbFile).toString();
+    if (fs.existsSync(lsbReleaseFile)) {
+        contents = fs.readFileSync(lsbReleaseFile).toString();
+    }
+    else if (fs.existsSync(osReleaseFile)) {
+        contents = fs.readFileSync(osReleaseFile).toString();
     }
     return contents;
 }
@@ -2987,6 +3461,25 @@ exports._readLinuxVersionFile = _readLinuxVersionFile;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2996,14 +3489,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RetryHelper = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 /**
  * Internal class for retries
@@ -3064,6 +3551,25 @@ exports.RetryHelper = RetryHelper;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -3073,17 +3579,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.evaluateVersions = exports.isExplicitVersion = exports.findFromManifest = exports.getManifestFromRepo = exports.findAllVersions = exports.find = exports.cacheFile = exports.cacheDir = exports.extractZip = exports.extractXar = exports.extractTar = exports.extract7z = exports.downloadTool = exports.HTTPError = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const io = __importStar(__nccwpck_require__(7436));
 const fs = __importStar(__nccwpck_require__(5747));
@@ -3115,9 +3615,10 @@ const userAgent = 'actions/tool-cache';
  * @param url       url of tool to download
  * @param dest      path to download tool
  * @param auth      authorization header
+ * @param headers   other headers
  * @returns         path to downloaded tool
  */
-function downloadTool(url, dest, auth) {
+function downloadTool(url, dest, auth, headers) {
     return __awaiter(this, void 0, void 0, function* () {
         dest = dest || path.join(_getTempDirectory(), v4_1.default());
         yield io.mkdirP(path.dirname(dest));
@@ -3128,7 +3629,7 @@ function downloadTool(url, dest, auth) {
         const maxSeconds = _getGlobal('TEST_DOWNLOAD_TOOL_RETRY_MAX_SECONDS', 20);
         const retryHelper = new retry_helper_1.RetryHelper(maxAttempts, minSeconds, maxSeconds);
         return yield retryHelper.execute(() => __awaiter(this, void 0, void 0, function* () {
-            return yield downloadToolAttempt(url, dest || '', auth);
+            return yield downloadToolAttempt(url, dest || '', auth, headers);
         }), (err) => {
             if (err instanceof HTTPError && err.httpStatusCode) {
                 // Don't retry anything less than 500, except 408 Request Timeout and 429 Too Many Requests
@@ -3144,7 +3645,7 @@ function downloadTool(url, dest, auth) {
     });
 }
 exports.downloadTool = downloadTool;
-function downloadToolAttempt(url, dest, auth) {
+function downloadToolAttempt(url, dest, auth, headers) {
     return __awaiter(this, void 0, void 0, function* () {
         if (fs.existsSync(dest)) {
             throw new Error(`Destination file path ${dest} already exists`);
@@ -3153,12 +3654,12 @@ function downloadToolAttempt(url, dest, auth) {
         const http = new httpm.HttpClient(userAgent, [], {
             allowRetries: false
         });
-        let headers;
         if (auth) {
             core.debug('set auth');
-            headers = {
-                authorization: auth
-            };
+            if (headers === undefined) {
+                headers = {};
+            }
+            headers.authorization = auth;
         }
         const response = yield http.get(url, headers);
         if (response.message.statusCode !== 200) {
@@ -3316,6 +3817,7 @@ function extractTar(file, dest, flags = 'xz') {
         if (isGnuTar) {
             // Suppress warnings when using GNU tar to extract archives created by BSD tar
             args.push('--warning=no-unknown-keyword');
+            args.push('--overwrite');
         }
         args.push('-C', destArg, '-f', fileArg);
         yield exec_1.exec(`tar`, args);
@@ -3381,20 +3883,50 @@ function extractZipWin(file, dest) {
         // build the powershell command
         const escapedFile = file.replace(/'/g, "''").replace(/"|\n|\r/g, ''); // double-up single quotes, remove double quotes and newlines
         const escapedDest = dest.replace(/'/g, "''").replace(/"|\n|\r/g, '');
-        const command = `$ErrorActionPreference = 'Stop' ; try { Add-Type -AssemblyName System.IO.Compression.FileSystem } catch { } ; [System.IO.Compression.ZipFile]::ExtractToDirectory('${escapedFile}', '${escapedDest}')`;
-        // run powershell
-        const powershellPath = yield io.which('powershell', true);
-        const args = [
-            '-NoLogo',
-            '-Sta',
-            '-NoProfile',
-            '-NonInteractive',
-            '-ExecutionPolicy',
-            'Unrestricted',
-            '-Command',
-            command
-        ];
-        yield exec_1.exec(`"${powershellPath}"`, args);
+        const pwshPath = yield io.which('pwsh', false);
+        //To match the file overwrite behavior on nix systems, we use the overwrite = true flag for ExtractToDirectory
+        //and the -Force flag for Expand-Archive as a fallback
+        if (pwshPath) {
+            //attempt to use pwsh with ExtractToDirectory, if this fails attempt Expand-Archive
+            const pwshCommand = [
+                `$ErrorActionPreference = 'Stop' ;`,
+                `try { Add-Type -AssemblyName System.IO.Compression.ZipFile } catch { } ;`,
+                `try { [System.IO.Compression.ZipFile]::ExtractToDirectory('${escapedFile}', '${escapedDest}', $true) }`,
+                `catch { if (($_.Exception.GetType().FullName -eq 'System.Management.Automation.MethodException') -or ($_.Exception.GetType().FullName -eq 'System.Management.Automation.RuntimeException') ){ Expand-Archive -LiteralPath '${escapedFile}' -DestinationPath '${escapedDest}' -Force } else { throw $_ } } ;`
+            ].join(' ');
+            const args = [
+                '-NoLogo',
+                '-NoProfile',
+                '-NonInteractive',
+                '-ExecutionPolicy',
+                'Unrestricted',
+                '-Command',
+                pwshCommand
+            ];
+            core.debug(`Using pwsh at path: ${pwshPath}`);
+            yield exec_1.exec(`"${pwshPath}"`, args);
+        }
+        else {
+            const powershellCommand = [
+                `$ErrorActionPreference = 'Stop' ;`,
+                `try { Add-Type -AssemblyName System.IO.Compression.FileSystem } catch { } ;`,
+                `if ((Get-Command -Name Expand-Archive -Module Microsoft.PowerShell.Archive -ErrorAction Ignore)) { Expand-Archive -LiteralPath '${escapedFile}' -DestinationPath '${escapedDest}' -Force }`,
+                `else {[System.IO.Compression.ZipFile]::ExtractToDirectory('${escapedFile}', '${escapedDest}', $true) }`
+            ].join(' ');
+            const args = [
+                '-NoLogo',
+                '-Sta',
+                '-NoProfile',
+                '-NonInteractive',
+                '-ExecutionPolicy',
+                'Unrestricted',
+                '-Command',
+                powershellCommand
+            ];
+            const powershellPath = yield io.which('powershell', true);
+            core.debug(`Using powershell at path: ${powershellPath}`);
+            yield exec_1.exec(`"${powershellPath}"`, args);
+        }
     });
 }
 function extractZipNix(file, dest) {
@@ -3404,6 +3936,7 @@ function extractZipNix(file, dest) {
         if (!core.isDebug()) {
             args.unshift('-q');
         }
+        args.unshift('-o'); //overwrite with -o, otherwise a prompt is shown which freezes the run
         yield exec_1.exec(`"${unzipPath}"`, args, { cwd: dest });
     });
 }
@@ -3486,9 +4019,9 @@ function find(toolName, versionSpec, arch) {
     }
     arch = arch || os.arch();
     // attempt to resolve an explicit version
-    if (!_isExplicitVersion(versionSpec)) {
+    if (!isExplicitVersion(versionSpec)) {
         const localVersions = findAllVersions(toolName, arch);
-        const match = _evaluateVersions(localVersions, versionSpec);
+        const match = evaluateVersions(localVersions, versionSpec);
         versionSpec = match;
     }
     // check for the explicit version in the cache
@@ -3521,7 +4054,7 @@ function findAllVersions(toolName, arch) {
     if (fs.existsSync(toolPath)) {
         const children = fs.readdirSync(toolPath);
         for (const child of children) {
-            if (_isExplicitVersion(child)) {
+            if (isExplicitVersion(child)) {
                 const fullPath = path.join(toolPath, child, arch || '');
                 if (fs.existsSync(fullPath) && fs.existsSync(`${fullPath}.complete`)) {
                     versions.push(child);
@@ -3604,14 +4137,26 @@ function _completeToolPath(tool, version, arch) {
     fs.writeFileSync(markerPath, '');
     core.debug('finished caching tool');
 }
-function _isExplicitVersion(versionSpec) {
+/**
+ * Check if version string is explicit
+ *
+ * @param versionSpec      version string to check
+ */
+function isExplicitVersion(versionSpec) {
     const c = semver.clean(versionSpec) || '';
     core.debug(`isExplicit: ${c}`);
     const valid = semver.valid(c) != null;
     core.debug(`explicit? ${valid}`);
     return valid;
 }
-function _evaluateVersions(versions, versionSpec) {
+exports.isExplicitVersion = isExplicitVersion;
+/**
+ * Get the highest satisfiying semantic version in `versions` which satisfies `versionSpec`
+ *
+ * @param versions        array of versions to evaluate
+ * @param versionSpec     semantic version spec to satisfy
+ */
+function evaluateVersions(versions, versionSpec) {
     let version = '';
     core.debug(`evaluating ${versions.length} versions`);
     versions = versions.sort((a, b) => {
@@ -3636,6 +4181,7 @@ function _evaluateVersions(versions, versionSpec) {
     }
     return version;
 }
+exports.evaluateVersions = evaluateVersions;
 /**
  * Gets RUNNER_TOOL_CACHE
  */
@@ -5466,7 +6012,7 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 
-const VERSION = "3.2.5";
+const VERSION = "3.4.0";
 
 class Octokit {
   constructor(options = {}) {
@@ -5475,6 +6021,7 @@ class Octokit {
       baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
       headers: {},
       request: Object.assign({}, options.request, {
+        // @ts-ignore internal usage only, no need to type
         hook: hook.bind(null, "request")
       }),
       mediaType: {
@@ -6007,7 +6554,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 var request = __nccwpck_require__(6234);
 var universalUserAgent = __nccwpck_require__(5030);
 
-const VERSION = "4.6.0";
+const VERSION = "4.6.2";
 
 class GraphqlError extends Error {
   constructor(request, response) {
@@ -6030,10 +6577,18 @@ class GraphqlError extends Error {
 }
 
 const NON_VARIABLE_OPTIONS = ["method", "baseUrl", "url", "headers", "request", "query", "mediaType"];
+const FORBIDDEN_VARIABLE_OPTIONS = ["query", "method", "url"];
 const GHES_V3_SUFFIX_REGEX = /\/api\/v3\/?$/;
 function graphql(request, query, options) {
-  if (typeof query === "string" && options && "query" in options) {
-    return Promise.reject(new Error(`[@octokit/graphql] "query" cannot be used as variable name`));
+  if (options) {
+    if (typeof query === "string" && "query" in options) {
+      return Promise.reject(new Error(`[@octokit/graphql] "query" cannot be used as variable name`));
+    }
+
+    for (const key in options) {
+      if (!FORBIDDEN_VARIABLE_OPTIONS.includes(key)) continue;
+      return Promise.reject(new Error(`[@octokit/graphql] "${key}" cannot be used as variable name`));
+    }
   }
 
   const parsedOptions = typeof query === "string" ? Object.assign({
@@ -6120,7 +6675,7 @@ exports.withCustomRequest = withCustomRequest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-const VERSION = "2.9.1";
+const VERSION = "2.13.3";
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -6231,6 +6786,16 @@ const composePaginateRest = Object.assign(paginate, {
   iterator
 });
 
+const paginatingEndpoints = ["GET /app/installations", "GET /applications/grants", "GET /authorizations", "GET /enterprises/{enterprise}/actions/permissions/organizations", "GET /enterprises/{enterprise}/actions/runner-groups", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/organizations", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/runners", "GET /enterprises/{enterprise}/actions/runners", "GET /enterprises/{enterprise}/actions/runners/downloads", "GET /events", "GET /gists", "GET /gists/public", "GET /gists/starred", "GET /gists/{gist_id}/comments", "GET /gists/{gist_id}/commits", "GET /gists/{gist_id}/forks", "GET /installation/repositories", "GET /issues", "GET /marketplace_listing/plans", "GET /marketplace_listing/plans/{plan_id}/accounts", "GET /marketplace_listing/stubbed/plans", "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts", "GET /networks/{owner}/{repo}/events", "GET /notifications", "GET /organizations", "GET /orgs/{org}/actions/permissions/repositories", "GET /orgs/{org}/actions/runner-groups", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/repositories", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/runners", "GET /orgs/{org}/actions/runners", "GET /orgs/{org}/actions/runners/downloads", "GET /orgs/{org}/actions/secrets", "GET /orgs/{org}/actions/secrets/{secret_name}/repositories", "GET /orgs/{org}/blocks", "GET /orgs/{org}/credential-authorizations", "GET /orgs/{org}/events", "GET /orgs/{org}/failed_invitations", "GET /orgs/{org}/hooks", "GET /orgs/{org}/installations", "GET /orgs/{org}/invitations", "GET /orgs/{org}/invitations/{invitation_id}/teams", "GET /orgs/{org}/issues", "GET /orgs/{org}/members", "GET /orgs/{org}/migrations", "GET /orgs/{org}/migrations/{migration_id}/repositories", "GET /orgs/{org}/outside_collaborators", "GET /orgs/{org}/projects", "GET /orgs/{org}/public_members", "GET /orgs/{org}/repos", "GET /orgs/{org}/team-sync/groups", "GET /orgs/{org}/teams", "GET /orgs/{org}/teams/{team_slug}/discussions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/invitations", "GET /orgs/{org}/teams/{team_slug}/members", "GET /orgs/{org}/teams/{team_slug}/projects", "GET /orgs/{org}/teams/{team_slug}/repos", "GET /orgs/{org}/teams/{team_slug}/team-sync/group-mappings", "GET /orgs/{org}/teams/{team_slug}/teams", "GET /projects/columns/{column_id}/cards", "GET /projects/{project_id}/collaborators", "GET /projects/{project_id}/columns", "GET /repos/{owner}/{repo}/actions/artifacts", "GET /repos/{owner}/{repo}/actions/runners", "GET /repos/{owner}/{repo}/actions/runners/downloads", "GET /repos/{owner}/{repo}/actions/runs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs", "GET /repos/{owner}/{repo}/actions/secrets", "GET /repos/{owner}/{repo}/actions/workflows", "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs", "GET /repos/{owner}/{repo}/assignees", "GET /repos/{owner}/{repo}/branches", "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations", "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs", "GET /repos/{owner}/{repo}/code-scanning/alerts", "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances", "GET /repos/{owner}/{repo}/code-scanning/analyses", "GET /repos/{owner}/{repo}/collaborators", "GET /repos/{owner}/{repo}/comments", "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/commits", "GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments", "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", "GET /repos/{owner}/{repo}/commits/{ref}/check-runs", "GET /repos/{owner}/{repo}/commits/{ref}/check-suites", "GET /repos/{owner}/{repo}/commits/{ref}/statuses", "GET /repos/{owner}/{repo}/contributors", "GET /repos/{owner}/{repo}/deployments", "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses", "GET /repos/{owner}/{repo}/events", "GET /repos/{owner}/{repo}/forks", "GET /repos/{owner}/{repo}/git/matching-refs/{ref}", "GET /repos/{owner}/{repo}/hooks", "GET /repos/{owner}/{repo}/invitations", "GET /repos/{owner}/{repo}/issues", "GET /repos/{owner}/{repo}/issues/comments", "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/issues/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/comments", "GET /repos/{owner}/{repo}/issues/{issue_number}/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/labels", "GET /repos/{owner}/{repo}/issues/{issue_number}/reactions", "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline", "GET /repos/{owner}/{repo}/keys", "GET /repos/{owner}/{repo}/labels", "GET /repos/{owner}/{repo}/milestones", "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels", "GET /repos/{owner}/{repo}/notifications", "GET /repos/{owner}/{repo}/pages/builds", "GET /repos/{owner}/{repo}/projects", "GET /repos/{owner}/{repo}/pulls", "GET /repos/{owner}/{repo}/pulls/comments", "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", "GET /repos/{owner}/{repo}/pulls/{pull_number}/commits", "GET /repos/{owner}/{repo}/pulls/{pull_number}/files", "GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments", "GET /repos/{owner}/{repo}/releases", "GET /repos/{owner}/{repo}/releases/{release_id}/assets", "GET /repos/{owner}/{repo}/secret-scanning/alerts", "GET /repos/{owner}/{repo}/stargazers", "GET /repos/{owner}/{repo}/subscribers", "GET /repos/{owner}/{repo}/tags", "GET /repos/{owner}/{repo}/teams", "GET /repositories", "GET /repositories/{repository_id}/environments/{environment_name}/secrets", "GET /scim/v2/enterprises/{enterprise}/Groups", "GET /scim/v2/enterprises/{enterprise}/Users", "GET /scim/v2/organizations/{org}/Users", "GET /search/code", "GET /search/commits", "GET /search/issues", "GET /search/labels", "GET /search/repositories", "GET /search/topics", "GET /search/users", "GET /teams/{team_id}/discussions", "GET /teams/{team_id}/discussions/{discussion_number}/comments", "GET /teams/{team_id}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /teams/{team_id}/discussions/{discussion_number}/reactions", "GET /teams/{team_id}/invitations", "GET /teams/{team_id}/members", "GET /teams/{team_id}/projects", "GET /teams/{team_id}/repos", "GET /teams/{team_id}/team-sync/group-mappings", "GET /teams/{team_id}/teams", "GET /user/blocks", "GET /user/emails", "GET /user/followers", "GET /user/following", "GET /user/gpg_keys", "GET /user/installations", "GET /user/installations/{installation_id}/repositories", "GET /user/issues", "GET /user/keys", "GET /user/marketplace_purchases", "GET /user/marketplace_purchases/stubbed", "GET /user/memberships/orgs", "GET /user/migrations", "GET /user/migrations/{migration_id}/repositories", "GET /user/orgs", "GET /user/public_emails", "GET /user/repos", "GET /user/repository_invitations", "GET /user/starred", "GET /user/subscriptions", "GET /user/teams", "GET /users", "GET /users/{username}/events", "GET /users/{username}/events/orgs/{org}", "GET /users/{username}/events/public", "GET /users/{username}/followers", "GET /users/{username}/following", "GET /users/{username}/gists", "GET /users/{username}/gpg_keys", "GET /users/{username}/keys", "GET /users/{username}/orgs", "GET /users/{username}/projects", "GET /users/{username}/received_events", "GET /users/{username}/received_events/public", "GET /users/{username}/repos", "GET /users/{username}/starred", "GET /users/{username}/subscriptions"];
+
+function isPaginatingEndpoint(arg) {
+  if (typeof arg === "string") {
+    return paginatingEndpoints.includes(arg);
+  } else {
+    return false;
+  }
+}
+
 /**
  * @param octokit Octokit instance
  * @param options Options passed to Octokit constructor
@@ -6246,7 +6811,9 @@ function paginateRest(octokit) {
 paginateRest.VERSION = VERSION;
 
 exports.composePaginateRest = composePaginateRest;
+exports.isPaginatingEndpoint = isPaginatingEndpoint;
 exports.paginateRest = paginateRest;
+exports.paginatingEndpoints = paginatingEndpoints;
 //# sourceMappingURL=index.js.map
 
 
@@ -6260,10 +6827,65 @@ exports.paginateRest = paginateRest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+
+    if (enumerableOnly) {
+      symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      });
+    }
+
+    keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+
+    if (i % 2) {
+      ownKeys(Object(source), true).forEach(function (key) {
+        _defineProperty(target, key, source[key]);
+      });
+    } else if (Object.getOwnPropertyDescriptors) {
+      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+      ownKeys(Object(source)).forEach(function (key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+  }
+
+  return target;
+}
+
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
 const Endpoints = {
   actions: {
     addSelectedRepoToOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
+    approveWorkflowRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve"],
     cancelWorkflowRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/cancel"],
+    createOrUpdateEnvironmentSecret: ["PUT /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
     createOrUpdateOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}"],
     createOrUpdateRepoSecret: ["PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     createRegistrationTokenForOrg: ["POST /orgs/{org}/actions/runners/registration-token"],
@@ -6272,6 +6894,7 @@ const Endpoints = {
     createRemoveTokenForRepo: ["POST /repos/{owner}/{repo}/actions/runners/remove-token"],
     createWorkflowDispatch: ["POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"],
     deleteArtifact: ["DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    deleteEnvironmentSecret: ["DELETE /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
     deleteOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}"],
     deleteRepoSecret: ["DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     deleteSelfHostedRunnerFromOrg: ["DELETE /orgs/{org}/actions/runners/{runner_id}"],
@@ -6288,16 +6911,20 @@ const Endpoints = {
     getAllowedActionsOrganization: ["GET /orgs/{org}/actions/permissions/selected-actions"],
     getAllowedActionsRepository: ["GET /repos/{owner}/{repo}/actions/permissions/selected-actions"],
     getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    getEnvironmentPublicKey: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets/public-key"],
+    getEnvironmentSecret: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets/{secret_name}"],
     getGithubActionsPermissionsOrganization: ["GET /orgs/{org}/actions/permissions"],
     getGithubActionsPermissionsRepository: ["GET /repos/{owner}/{repo}/actions/permissions"],
     getJobForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}"],
     getOrgPublicKey: ["GET /orgs/{org}/actions/secrets/public-key"],
     getOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}"],
+    getPendingDeploymentsForRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"],
     getRepoPermissions: ["GET /repos/{owner}/{repo}/actions/permissions", {}, {
       renamed: ["actions", "getGithubActionsPermissionsRepository"]
     }],
     getRepoPublicKey: ["GET /repos/{owner}/{repo}/actions/secrets/public-key"],
     getRepoSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
+    getReviewsForRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/approvals"],
     getSelfHostedRunnerForOrg: ["GET /orgs/{org}/actions/runners/{runner_id}"],
     getSelfHostedRunnerForRepo: ["GET /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     getWorkflow: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}"],
@@ -6305,6 +6932,7 @@ const Endpoints = {
     getWorkflowRunUsage: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing"],
     getWorkflowUsage: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/timing"],
     listArtifactsForRepo: ["GET /repos/{owner}/{repo}/actions/artifacts"],
+    listEnvironmentSecrets: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets"],
     listJobsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs"],
     listOrgSecrets: ["GET /orgs/{org}/actions/secrets"],
     listRepoSecrets: ["GET /repos/{owner}/{repo}/actions/secrets"],
@@ -6320,6 +6948,7 @@ const Endpoints = {
     listWorkflowRunsForRepo: ["GET /repos/{owner}/{repo}/actions/runs"],
     reRunWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun"],
     removeSelectedRepoFromOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
+    reviewPendingDeploymentsForRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"],
     setAllowedActionsOrganization: ["PUT /orgs/{org}/actions/permissions/selected-actions"],
     setAllowedActionsRepository: ["PUT /repos/{owner}/{repo}/actions/permissions/selected-actions"],
     setGithubActionsPermissionsOrganization: ["PUT /orgs/{org}/actions/permissions"],
@@ -6364,6 +6993,11 @@ const Endpoints = {
     addRepoToInstallation: ["PUT /user/installations/{installation_id}/repositories/{repository_id}"],
     checkToken: ["POST /applications/{client_id}/token"],
     createContentAttachment: ["POST /content_references/{content_reference_id}/attachments", {
+      mediaType: {
+        previews: ["corsair"]
+      }
+    }],
+    createContentAttachmentForRepo: ["POST /repos/{owner}/{repo}/content_references/{content_reference_id}/attachments", {
       mediaType: {
         previews: ["corsair"]
       }
@@ -6422,12 +7056,19 @@ const Endpoints = {
     update: ["PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}"]
   },
   codeScanning: {
+    deleteAnalysis: ["DELETE /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}{?confirm_delete}"],
     getAlert: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}", {}, {
       renamedParameters: {
         alert_id: "alert_number"
       }
     }],
+    getAnalysis: ["GET /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}"],
+    getSarif: ["GET /repos/{owner}/{repo}/code-scanning/sarifs/{sarif_id}"],
+    listAlertInstances: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances"],
     listAlertsForRepo: ["GET /repos/{owner}/{repo}/code-scanning/alerts"],
+    listAlertsInstances: ["GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances", {}, {
+      renamed: ["codeScanning", "listAlertInstances"]
+    }],
     listRecentAnalyses: ["GET /repos/{owner}/{repo}/code-scanning/analyses"],
     updateAlert: ["PATCH /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}"],
     uploadSarif: ["POST /repos/{owner}/{repo}/code-scanning/sarifs"]
@@ -6700,6 +7341,31 @@ const Endpoints = {
     updateWebhook: ["PATCH /orgs/{org}/hooks/{hook_id}"],
     updateWebhookConfigForOrg: ["PATCH /orgs/{org}/hooks/{hook_id}/config"]
   },
+  packages: {
+    deletePackageForAuthenticatedUser: ["DELETE /user/packages/{package_type}/{package_name}"],
+    deletePackageForOrg: ["DELETE /orgs/{org}/packages/{package_type}/{package_name}"],
+    deletePackageVersionForAuthenticatedUser: ["DELETE /user/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    deletePackageVersionForOrg: ["DELETE /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getAllPackageVersionsForAPackageOwnedByAnOrg: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions", {}, {
+      renamed: ["packages", "getAllPackageVersionsForPackageOwnedByOrg"]
+    }],
+    getAllPackageVersionsForAPackageOwnedByTheAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions", {}, {
+      renamed: ["packages", "getAllPackageVersionsForPackageOwnedByAuthenticatedUser"]
+    }],
+    getAllPackageVersionsForPackageOwnedByAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions"],
+    getAllPackageVersionsForPackageOwnedByOrg: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions"],
+    getAllPackageVersionsForPackageOwnedByUser: ["GET /users/{username}/packages/{package_type}/{package_name}/versions"],
+    getPackageForAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}"],
+    getPackageForOrganization: ["GET /orgs/{org}/packages/{package_type}/{package_name}"],
+    getPackageForUser: ["GET /users/{username}/packages/{package_type}/{package_name}"],
+    getPackageVersionForAuthenticatedUser: ["GET /user/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getPackageVersionForOrganization: ["GET /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    getPackageVersionForUser: ["GET /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
+    restorePackageForAuthenticatedUser: ["POST /user/packages/{package_type}/{package_name}/restore{?token}"],
+    restorePackageForOrg: ["POST /orgs/{org}/packages/{package_type}/{package_name}/restore{?token}"],
+    restorePackageVersionForAuthenticatedUser: ["POST /user/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"],
+    restorePackageVersionForOrg: ["POST /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"]
+  },
   projects: {
     addCollaborator: ["PUT /projects/{project_id}/collaborators/{username}", {
       mediaType: {
@@ -6884,6 +7550,11 @@ const Endpoints = {
         previews: ["squirrel-girl"]
       }
     }],
+    createForRelease: ["POST /repos/{owner}/{repo}/releases/{release_id}/reactions", {
+      mediaType: {
+        previews: ["squirrel-girl"]
+      }
+    }],
     createForTeamDiscussionCommentInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", {
       mediaType: {
         previews: ["squirrel-girl"]
@@ -6929,7 +7600,7 @@ const Endpoints = {
         previews: ["squirrel-girl"]
       }
     }, {
-      deprecated: "octokit.reactions.deleteLegacy() is deprecated, see https://docs.github.com/v3/reactions/#delete-a-reaction-legacy"
+      deprecated: "octokit.rest.reactions.deleteLegacy() is deprecated, see https://docs.github.com/rest/reference/reactions/#delete-a-reaction-legacy"
     }],
     listForCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", {
       mediaType: {
@@ -6984,6 +7655,7 @@ const Endpoints = {
       }
     }],
     compareCommits: ["GET /repos/{owner}/{repo}/compare/{base}...{head}"],
+    compareCommitsWithBasehead: ["GET /repos/{owner}/{repo}/compare/{basehead}"],
     createCommitComment: ["POST /repos/{owner}/{repo}/commits/{commit_sha}/comments"],
     createCommitSignatureProtection: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
       mediaType: {
@@ -6998,6 +7670,7 @@ const Endpoints = {
     createForAuthenticatedUser: ["POST /user/repos"],
     createFork: ["POST /repos/{owner}/{repo}/forks"],
     createInOrg: ["POST /orgs/{org}/repos"],
+    createOrUpdateEnvironment: ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
     createPagesSite: ["POST /repos/{owner}/{repo}/pages", {
       mediaType: {
@@ -7015,6 +7688,7 @@ const Endpoints = {
     delete: ["DELETE /repos/{owner}/{repo}"],
     deleteAccessRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     deleteAdminBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
+    deleteAnEnvironment: ["DELETE /repos/{owner}/{repo}/environments/{environment_name}"],
     deleteBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection"],
     deleteCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}"],
     deleteCommitSignatureProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
@@ -7063,6 +7737,7 @@ const Endpoints = {
     get: ["GET /repos/{owner}/{repo}"],
     getAccessRestrictions: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     getAdminBranchProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
+    getAllEnvironments: ["GET /repos/{owner}/{repo}/environments"],
     getAllStatusCheckContexts: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"],
     getAllTopics: ["GET /repos/{owner}/{repo}/topics", {
       mediaType: {
@@ -7090,14 +7765,17 @@ const Endpoints = {
     getDeployKey: ["GET /repos/{owner}/{repo}/keys/{key_id}"],
     getDeployment: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}"],
     getDeploymentStatus: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses/{status_id}"],
+    getEnvironment: ["GET /repos/{owner}/{repo}/environments/{environment_name}"],
     getLatestPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/latest"],
     getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
     getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
+    getPagesHealthCheck: ["GET /repos/{owner}/{repo}/pages/health"],
     getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
     getPullRequestReviewProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     getPunchCardStats: ["GET /repos/{owner}/{repo}/stats/punch_card"],
     getReadme: ["GET /repos/{owner}/{repo}/readme"],
+    getReadmeInDirectory: ["GET /repos/{owner}/{repo}/readme/{dir}"],
     getRelease: ["GET /repos/{owner}/{repo}/releases/{release_id}"],
     getReleaseAsset: ["GET /repos/{owner}/{repo}/releases/assets/{asset_id}"],
     getReleaseByTag: ["GET /repos/{owner}/{repo}/releases/tags/{tag}"],
@@ -7301,7 +7979,7 @@ const Endpoints = {
   }
 };
 
-const VERSION = "4.10.2";
+const VERSION = "5.3.1";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -7384,22 +8062,22 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
   return Object.assign(withDecorations, requestWithDefaults);
 }
 
-/**
- * This plugin is a 1:1 copy of internal @octokit/rest plugins. The primary
- * goal is to rebuild @octokit/rest on top of @octokit/core. Once that is
- * done, we will remove the registerEndpoints methods and return the methods
- * directly as with the other plugins. At that point we will also remove the
- * legacy workarounds and deprecations.
- *
- * See the plan at
- * https://github.com/octokit/plugin-rest-endpoint-methods.js/pull/1
- */
-
 function restEndpointMethods(octokit) {
-  return endpointsToMethods(octokit, Endpoints);
+  const api = endpointsToMethods(octokit, Endpoints);
+  return {
+    rest: api
+  };
 }
 restEndpointMethods.VERSION = VERSION;
+function legacyRestEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit, Endpoints);
+  return _objectSpread2(_objectSpread2({}, api), {}, {
+    rest: api
+  });
+}
+legacyRestEndpointMethods.VERSION = VERSION;
 
+exports.legacyRestEndpointMethods = legacyRestEndpointMethods;
 exports.restEndpointMethods = restEndpointMethods;
 //# sourceMappingURL=index.js.map
 
@@ -7485,13 +8163,15 @@ var isPlainObject = __nccwpck_require__(3287);
 var nodeFetch = _interopDefault(__nccwpck_require__(467));
 var requestError = __nccwpck_require__(537);
 
-const VERSION = "5.4.14";
+const VERSION = "5.5.0";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
 }
 
 function fetchWrapper(requestOptions) {
+  const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
+
   if (isPlainObject.isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
@@ -7505,12 +8185,20 @@ function fetchWrapper(requestOptions) {
     body: requestOptions.body,
     headers: requestOptions.headers,
     redirect: requestOptions.redirect
-  }, requestOptions.request)).then(response => {
+  }, // `requestOptions.request.agent` type is incompatible
+  // see https://github.com/octokit/types.ts/pull/264
+  requestOptions.request)).then(response => {
     url = response.url;
     status = response.status;
 
     for (const keyAndValue of response.headers) {
       headers[keyAndValue[0]] = keyAndValue[1];
+    }
+
+    if ("deprecation" in headers) {
+      const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
+      const deprecationLink = matches && matches.pop();
+      log.warn(`[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`);
     }
 
     if (status === 204 || status === 205) {
@@ -7642,15 +8330,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.exec = void 0;
 const exec_1 = __nccwpck_require__(1514);
-const core_1 = __nccwpck_require__(2186);
 function exec(command, args = [], silent, stdin) {
     return __awaiter(this, void 0, void 0, function* () {
         let stdout = '';
         let stderr = '';
-        core_1.debug(`Executing: ${command} ${args.join(' ')}`);
-        if (stdin) {
-            core_1.debug(`Stdin: ${stdin}`);
-        }
         const options = {
             silent,
             ignoreReturnCode: true,
@@ -7849,1363 +8532,6 @@ function removeHook(state, name, method) {
   }
 
   state.registry[name].splice(index, 1);
-}
-
-
-/***/ }),
-
-/***/ 6942:
-/***/ ((module) => {
-
-
-
-class ResizeableBuffer{
-  constructor(size=100){
-    this.size = size
-    this.length = 0
-    this.buf = Buffer.alloc(size)
-  }
-  prepend(val){
-    if(Buffer.isBuffer(val)){
-      const length = this.length + val.length
-      if(length >= this.size){
-        this.resize()
-        if(length >= this.size){
-          throw Error('INVALID_BUFFER_STATE')
-        }
-      }
-      const buf = this.buf
-      this.buf = Buffer.alloc(this.size)
-      val.copy(this.buf, 0)
-      buf.copy(this.buf, val.length)
-      this.length += val.length
-    }else{
-      const length = this.length++
-      if(length === this.size){
-        this.resize()
-      }
-      const buf = this.clone()
-      this.buf[0] = val
-      buf.copy(this.buf,1, 0, length)
-    }
-  }
-  append(val){
-    const length = this.length++
-    if(length === this.size){
-      this.resize()
-    }
-    this.buf[length] = val
-  }
-  clone(){
-    return Buffer.from(this.buf.slice(0, this.length))
-  }
-  resize(){
-    const length = this.length
-    this.size = this.size * 2
-    const buf = Buffer.alloc(this.size)
-    this.buf.copy(buf,0, 0, length)
-    this.buf = buf
-  }
-  toString(encoding){
-    if(encoding){
-      return this.buf.slice(0, this.length).toString(encoding)
-    }else{
-      return Uint8Array.prototype.slice.call(this.buf.slice(0, this.length))
-    }
-  }
-  toJSON(){
-    return this.toString('utf8')
-  }
-  reset(){
-    this.length = 0
-  }
-}
-
-module.exports = ResizeableBuffer
-
-
-/***/ }),
-
-/***/ 2830:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-/*
-CSV Parse
-
-Please look at the [project documentation](https://csv.js.org/parse/) for
-additional information.
-*/
-
-const { Transform } = __nccwpck_require__(2413)
-const ResizeableBuffer = __nccwpck_require__(6942)
-
-// white space characters
-// https://en.wikipedia.org/wiki/Whitespace_character
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Character_Classes#Types
-// \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff
-const tab = 9
-const nl = 10 // \n, 0x0A in hexadecimal, 10 in decimal
-const np = 12
-const cr = 13 // \r, 0x0D in hexadécimal, 13 in decimal
-const space = 32
-const boms = {
-  // Note, the following are equals:
-  // Buffer.from("\ufeff")
-  // Buffer.from([239, 187, 191])
-  // Buffer.from('EFBBBF', 'hex')
-  'utf8': Buffer.from([239, 187, 191]),
-  // Note, the following are equals:
-  // Buffer.from "\ufeff", 'utf16le
-  // Buffer.from([255, 254])
-  'utf16le': Buffer.from([255, 254])
-}
-
-class Parser extends Transform {
-  constructor(opts = {}){
-    super({...{readableObjectMode: true}, ...opts, encoding: null})
-    this.__originalOptions = opts
-    this.__normalizeOptions(opts)
-  }
-  __normalizeOptions(opts){
-    const options = {}
-    // Merge with user options
-    for(let opt in opts){
-      options[underscore(opt)] = opts[opt]
-    }
-    // Normalize option `encoding`
-    // Note: defined first because other options depends on it
-    // to convert chars/strings into buffers.
-    if(options.encoding === undefined || options.encoding === true){
-      options.encoding = 'utf8'
-    }else if(options.encoding === null || options.encoding === false){
-      options.encoding = null
-    }else if(typeof options.encoding !== 'string' && options.encoding !== null){
-      throw new CsvError('CSV_INVALID_OPTION_ENCODING', [
-        'Invalid option encoding:',
-        'encoding must be a string or null to return a buffer,',
-        `got ${JSON.stringify(options.encoding)}`
-      ], options)
-    }
-    // Normalize option `bom`
-    if(options.bom === undefined || options.bom === null || options.bom === false){
-      options.bom = false
-    }else if(options.bom !== true){
-      throw new CsvError('CSV_INVALID_OPTION_BOM', [
-        'Invalid option bom:', 'bom must be true,',
-        `got ${JSON.stringify(options.bom)}`
-      ], options)
-    }
-    // Normalize option `cast`
-    let fnCastField = null
-    if(options.cast === undefined || options.cast === null || options.cast === false || options.cast === ''){
-      options.cast = undefined
-    }else if(typeof options.cast === 'function'){
-      fnCastField = options.cast
-      options.cast = true
-    }else if(options.cast !== true){
-      throw new CsvError('CSV_INVALID_OPTION_CAST', [
-        'Invalid option cast:', 'cast must be true or a function,',
-        `got ${JSON.stringify(options.cast)}`
-      ], options)
-    }
-    // Normalize option `cast_date`
-    if(options.cast_date === undefined || options.cast_date === null || options.cast_date === false || options.cast_date === ''){
-      options.cast_date = false
-    }else if(options.cast_date === true){
-      options.cast_date = function(value){
-        const date = Date.parse(value)
-        return !isNaN(date) ? new Date(date) : value
-      }
-    }else if(typeof options.cast_date !== 'function'){
-      throw new CsvError('CSV_INVALID_OPTION_CAST_DATE', [
-        'Invalid option cast_date:', 'cast_date must be true or a function,',
-        `got ${JSON.stringify(options.cast_date)}`
-      ], options)
-    }
-    // Normalize option `columns`
-    let fnFirstLineToHeaders = null
-    if(options.columns === true){
-      // Fields in the first line are converted as-is to columns
-      fnFirstLineToHeaders = undefined
-    }else if(typeof options.columns === 'function'){
-      fnFirstLineToHeaders = options.columns
-      options.columns = true
-    }else if(Array.isArray(options.columns)){
-      options.columns = normalizeColumnsArray(options.columns)
-    }else if(options.columns === undefined || options.columns === null || options.columns === false){
-      options.columns = false
-    }else{
-      throw new CsvError('CSV_INVALID_OPTION_COLUMNS', [
-        'Invalid option columns:',
-        'expect an object, a function or true,',
-        `got ${JSON.stringify(options.columns)}`
-      ], options)
-    }
-    // Normalize option `columns_duplicates_to_array`
-    if(options.columns_duplicates_to_array === undefined || options.columns_duplicates_to_array === null || options.columns_duplicates_to_array === false){
-      options.columns_duplicates_to_array = false
-    }else if(options.columns_duplicates_to_array !== true){
-      throw new CsvError('CSV_INVALID_OPTION_COLUMNS_DUPLICATES_TO_ARRAY', [
-        'Invalid option columns_duplicates_to_array:',
-        'expect an boolean,',
-        `got ${JSON.stringify(options.columns_duplicates_to_array)}`
-      ], options)
-    }
-    // Normalize option `comment`
-    if(options.comment === undefined || options.comment === null || options.comment === false || options.comment === ''){
-      options.comment = null
-    }else{
-      if(typeof options.comment === 'string'){
-        options.comment = Buffer.from(options.comment, options.encoding)
-      }
-      if(!Buffer.isBuffer(options.comment)){
-        throw new CsvError('CSV_INVALID_OPTION_COMMENT', [
-          'Invalid option comment:',
-          'comment must be a buffer or a string,',
-          `got ${JSON.stringify(options.comment)}`
-        ], options)
-      }
-    }
-    // Normalize option `delimiter`
-    const delimiter_json = JSON.stringify(options.delimiter)
-    if(!Array.isArray(options.delimiter)) options.delimiter = [options.delimiter]
-    if(options.delimiter.length === 0){
-      throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
-        'Invalid option delimiter:',
-        'delimiter must be a non empty string or buffer or array of string|buffer,',
-        `got ${delimiter_json}`
-      ], options)
-    }
-    options.delimiter = options.delimiter.map(function(delimiter){
-      if(delimiter === undefined || delimiter === null || delimiter === false){
-        return Buffer.from(',', options.encoding)
-      }
-      if(typeof delimiter === 'string'){
-        delimiter = Buffer.from(delimiter, options.encoding)
-      }
-      if( !Buffer.isBuffer(delimiter) || delimiter.length === 0){
-        throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
-          'Invalid option delimiter:',
-          'delimiter must be a non empty string or buffer or array of string|buffer,',
-          `got ${delimiter_json}`
-        ], options)
-      }
-      return delimiter
-    })
-    // Normalize option `escape`
-    if(options.escape === undefined || options.escape === true){
-      options.escape = Buffer.from('"', options.encoding)
-    }else if(typeof options.escape === 'string'){
-      options.escape = Buffer.from(options.escape, options.encoding)
-    }else if (options.escape === null || options.escape === false){
-      options.escape = null
-    }
-    if(options.escape !== null){
-      if(!Buffer.isBuffer(options.escape)){
-        throw new Error(`Invalid Option: escape must be a buffer, a string or a boolean, got ${JSON.stringify(options.escape)}`)
-      }
-    }
-    // Normalize option `from`
-    if(options.from === undefined || options.from === null){
-      options.from = 1
-    }else{
-      if(typeof options.from === 'string' && /\d+/.test(options.from)){
-        options.from = parseInt(options.from)
-      }
-      if(Number.isInteger(options.from)){
-        if(options.from < 0){
-          throw new Error(`Invalid Option: from must be a positive integer, got ${JSON.stringify(opts.from)}`)
-        }
-      }else{
-        throw new Error(`Invalid Option: from must be an integer, got ${JSON.stringify(options.from)}`)
-      }
-    }
-    // Normalize option `from_line`
-    if(options.from_line === undefined || options.from_line === null){
-      options.from_line = 1
-    }else{
-      if(typeof options.from_line === 'string' && /\d+/.test(options.from_line)){
-        options.from_line = parseInt(options.from_line)
-      }
-      if(Number.isInteger(options.from_line)){
-        if(options.from_line <= 0){
-          throw new Error(`Invalid Option: from_line must be a positive integer greater than 0, got ${JSON.stringify(opts.from_line)}`)
-        }
-      }else{
-        throw new Error(`Invalid Option: from_line must be an integer, got ${JSON.stringify(opts.from_line)}`)
-      }
-    }
-    // Normalize options `ignore_last_delimiters`
-    if(options.ignore_last_delimiters === undefined || options.ignore_last_delimiters === null){
-      options.ignore_last_delimiters = false
-    }else if(typeof options.ignore_last_delimiters === 'number'){
-      options.ignore_last_delimiters = Math.floor(options.ignore_last_delimiters)
-      if(options.ignore_last_delimiters === 0){
-        options.ignore_last_delimiters = false
-      }
-    }else if(typeof options.ignore_last_delimiters !== 'boolean'){
-      throw new CsvError('CSV_INVALID_OPTION_IGNORE_LAST_DELIMITERS', [
-        'Invalid option `ignore_last_delimiters`:',
-        'the value must be a boolean value or an integer,',
-        `got ${JSON.stringify(options.ignore_last_delimiters)}`
-      ], options)
-    }
-    if(options.ignore_last_delimiters === true && options.columns === false){
-      throw new CsvError('CSV_IGNORE_LAST_DELIMITERS_REQUIRES_COLUMNS', [
-        'The option `ignore_last_delimiters`',
-        'requires the activation of the `columns` option'
-      ], options)
-    }
-    // Normalize option `info`
-    if(options.info === undefined || options.info === null || options.info === false){
-      options.info = false
-    }else if(options.info !== true){
-      throw new Error(`Invalid Option: info must be true, got ${JSON.stringify(options.info)}`)
-    }
-    // Normalize option `max_record_size`
-    if(options.max_record_size === undefined || options.max_record_size === null || options.max_record_size === false){
-      options.max_record_size = 0
-    }else if(Number.isInteger(options.max_record_size) && options.max_record_size >= 0){
-      // Great, nothing to do
-    }else if(typeof options.max_record_size === 'string' && /\d+/.test(options.max_record_size)){
-      options.max_record_size = parseInt(options.max_record_size)
-    }else{
-      throw new Error(`Invalid Option: max_record_size must be a positive integer, got ${JSON.stringify(options.max_record_size)}`)
-    }
-    // Normalize option `objname`
-    if(options.objname === undefined || options.objname === null || options.objname === false){
-      options.objname = undefined
-    }else if(Buffer.isBuffer(options.objname)){
-      if(options.objname.length === 0){
-        throw new Error(`Invalid Option: objname must be a non empty buffer`)
-      }
-      if(options.encoding === null){
-        // Don't call `toString`, leave objname as a buffer
-      }else{
-        options.objname = options.objname.toString(options.encoding)
-      }
-    }else if(typeof options.objname === 'string'){
-      if(options.objname.length === 0){
-        throw new Error(`Invalid Option: objname must be a non empty string`)
-      }
-      // Great, nothing to do
-    }else{
-      throw new Error(`Invalid Option: objname must be a string or a buffer, got ${options.objname}`)
-    }
-    // Normalize option `on_record`
-    if(options.on_record === undefined || options.on_record === null){
-      options.on_record = undefined
-    }else if(typeof options.on_record !== 'function'){
-      throw new CsvError('CSV_INVALID_OPTION_ON_RECORD', [
-        'Invalid option `on_record`:',
-        'expect a function,',
-        `got ${JSON.stringify(options.on_record)}`
-      ], options)
-    }
-    // Normalize option `quote`
-    if(options.quote === null || options.quote === false || options.quote === ''){
-      options.quote = null
-    }else{
-      if(options.quote === undefined || options.quote === true){
-        options.quote = Buffer.from('"', options.encoding)
-      }else if(typeof options.quote === 'string'){
-        options.quote = Buffer.from(options.quote, options.encoding)
-      }
-      if(!Buffer.isBuffer(options.quote)){
-        throw new Error(`Invalid Option: quote must be a buffer or a string, got ${JSON.stringify(options.quote)}`)
-      }
-    }
-    // Normalize option `raw`
-    if(options.raw === undefined || options.raw === null || options.raw === false){
-      options.raw = false
-    }else if(options.raw !== true){
-      throw new Error(`Invalid Option: raw must be true, got ${JSON.stringify(options.raw)}`)
-    }
-    // Normalize option `record_delimiter`
-    if(!options.record_delimiter){
-      options.record_delimiter = []
-    }else if(!Array.isArray(options.record_delimiter)){
-      options.record_delimiter = [options.record_delimiter]
-    }
-    options.record_delimiter = options.record_delimiter.map( function(rd){
-      if(typeof rd === 'string'){
-        rd = Buffer.from(rd, options.encoding)
-      }
-      return rd
-    })
-    // Normalize option `relax`
-    if(typeof options.relax === 'boolean'){
-      // Great, nothing to do
-    }else if(options.relax === undefined || options.relax === null){
-      options.relax = false
-    }else{
-      throw new Error(`Invalid Option: relax must be a boolean, got ${JSON.stringify(options.relax)}`)
-    }
-    // Normalize option `relax_column_count`
-    if(typeof options.relax_column_count === 'boolean'){
-      // Great, nothing to do
-    }else if(options.relax_column_count === undefined || options.relax_column_count === null){
-      options.relax_column_count = false
-    }else{
-      throw new Error(`Invalid Option: relax_column_count must be a boolean, got ${JSON.stringify(options.relax_column_count)}`)
-    }
-    if(typeof options.relax_column_count_less === 'boolean'){
-      // Great, nothing to do
-    }else if(options.relax_column_count_less === undefined || options.relax_column_count_less === null){
-      options.relax_column_count_less = false
-    }else{
-      throw new Error(`Invalid Option: relax_column_count_less must be a boolean, got ${JSON.stringify(options.relax_column_count_less)}`)
-    }
-    if(typeof options.relax_column_count_more === 'boolean'){
-      // Great, nothing to do
-    }else if(options.relax_column_count_more === undefined || options.relax_column_count_more === null){
-      options.relax_column_count_more = false
-    }else{
-      throw new Error(`Invalid Option: relax_column_count_more must be a boolean, got ${JSON.stringify(options.relax_column_count_more)}`)
-    }
-    // Normalize option `skip_empty_lines`
-    if(typeof options.skip_empty_lines === 'boolean'){
-      // Great, nothing to do
-    }else if(options.skip_empty_lines === undefined || options.skip_empty_lines === null){
-      options.skip_empty_lines = false
-    }else{
-      throw new Error(`Invalid Option: skip_empty_lines must be a boolean, got ${JSON.stringify(options.skip_empty_lines)}`)
-    }
-    // Normalize option `skip_lines_with_empty_values`
-    if(typeof options.skip_lines_with_empty_values === 'boolean'){
-      // Great, nothing to do
-    }else if(options.skip_lines_with_empty_values === undefined || options.skip_lines_with_empty_values === null){
-      options.skip_lines_with_empty_values = false
-    }else{
-      throw new Error(`Invalid Option: skip_lines_with_empty_values must be a boolean, got ${JSON.stringify(options.skip_lines_with_empty_values)}`)
-    }
-    // Normalize option `skip_lines_with_error`
-    if(typeof options.skip_lines_with_error === 'boolean'){
-      // Great, nothing to do
-    }else if(options.skip_lines_with_error === undefined || options.skip_lines_with_error === null){
-      options.skip_lines_with_error = false
-    }else{
-      throw new Error(`Invalid Option: skip_lines_with_error must be a boolean, got ${JSON.stringify(options.skip_lines_with_error)}`)
-    }
-    // Normalize option `rtrim`
-    if(options.rtrim === undefined || options.rtrim === null || options.rtrim === false){
-      options.rtrim = false
-    }else if(options.rtrim !== true){
-      throw new Error(`Invalid Option: rtrim must be a boolean, got ${JSON.stringify(options.rtrim)}`)
-    }
-    // Normalize option `ltrim`
-    if(options.ltrim === undefined || options.ltrim === null || options.ltrim === false){
-      options.ltrim = false
-    }else if(options.ltrim !== true){
-      throw new Error(`Invalid Option: ltrim must be a boolean, got ${JSON.stringify(options.ltrim)}`)
-    }
-    // Normalize option `trim`
-    if(options.trim === undefined || options.trim === null || options.trim === false){
-      options.trim = false
-    }else if(options.trim !== true){
-      throw new Error(`Invalid Option: trim must be a boolean, got ${JSON.stringify(options.trim)}`)
-    }
-    // Normalize options `trim`, `ltrim` and `rtrim`
-    if(options.trim === true && opts.ltrim !== false){
-      options.ltrim = true
-    }else if(options.ltrim !== true){
-      options.ltrim = false
-    }
-    if(options.trim === true && opts.rtrim !== false){
-      options.rtrim = true
-    }else if(options.rtrim !== true){
-      options.rtrim = false
-    }
-    // Normalize option `to`
-    if(options.to === undefined || options.to === null){
-      options.to = -1
-    }else{
-      if(typeof options.to === 'string' && /\d+/.test(options.to)){
-        options.to = parseInt(options.to)
-      }
-      if(Number.isInteger(options.to)){
-        if(options.to <= 0){
-          throw new Error(`Invalid Option: to must be a positive integer greater than 0, got ${JSON.stringify(opts.to)}`)
-        }
-      }else{
-        throw new Error(`Invalid Option: to must be an integer, got ${JSON.stringify(opts.to)}`)
-      }
-    }
-    // Normalize option `to_line`
-    if(options.to_line === undefined || options.to_line === null){
-      options.to_line = -1
-    }else{
-      if(typeof options.to_line === 'string' && /\d+/.test(options.to_line)){
-        options.to_line = parseInt(options.to_line)
-      }
-      if(Number.isInteger(options.to_line)){
-        if(options.to_line <= 0){
-          throw new Error(`Invalid Option: to_line must be a positive integer greater than 0, got ${JSON.stringify(opts.to_line)}`)
-        }
-      }else{
-        throw new Error(`Invalid Option: to_line must be an integer, got ${JSON.stringify(opts.to_line)}`)
-      }
-    }
-    this.info = {
-      comment_lines: 0,
-      empty_lines: 0,
-      invalid_field_length: 0,
-      lines: 1,
-      records: 0
-    }
-    this.options = options
-    this.state = {
-      bomSkipped: false,
-      castField: fnCastField,
-      commenting: false,
-      // Current error encountered by a record
-      error: undefined,
-      enabled: options.from_line === 1,
-      escaping: false,
-      // escapeIsQuote: options.escape === options.quote,
-      escapeIsQuote: Buffer.isBuffer(options.escape) && Buffer.isBuffer(options.quote) && Buffer.compare(options.escape, options.quote) === 0,
-      expectedRecordLength: options.columns === null ? 0 : options.columns.length,
-      field: new ResizeableBuffer(20),
-      firstLineToHeaders: fnFirstLineToHeaders,
-      info: Object.assign({}, this.info),
-      needMoreDataSize: Math.max(
-        // Skip if the remaining buffer smaller than comment
-        options.comment !== null ? options.comment.length : 0,
-        // Skip if the remaining buffer can be delimiter
-        ...options.delimiter.map( (delimiter) => delimiter.length),
-        // Skip if the remaining buffer can be escape sequence
-        options.quote !== null ? options.quote.length : 0,
-      ),
-      previousBuf: undefined,
-      quoting: false,
-      stop: false,
-      rawBuffer: new ResizeableBuffer(100),
-      record: [],
-      recordHasError: false,
-      record_length: 0,
-      recordDelimiterMaxLength: options.record_delimiter.length === 0 ? 2 : Math.max(...options.record_delimiter.map( (v) => v.length)),
-      trimChars: [Buffer.from(' ', options.encoding)[0], Buffer.from('\t', options.encoding)[0]],
-      wasQuoting: false,
-      wasRowDelimiter: false
-    }
-  }
-  // Implementation of `Transform._transform`
-  _transform(buf, encoding, callback){
-    if(this.state.stop === true){
-      return
-    }
-    const err = this.__parse(buf, false)
-    if(err !== undefined){
-      this.state.stop = true
-    }
-    callback(err)
-  }
-  // Implementation of `Transform._flush`
-  _flush(callback){
-    if(this.state.stop === true){
-      return
-    }
-    const err = this.__parse(undefined, true)
-    callback(err)
-  }
-  // Central parser implementation
-  __parse(nextBuf, end){
-    const {bom, comment, escape, from_line, info, ltrim, max_record_size, quote, raw, relax, rtrim, skip_empty_lines, to, to_line} = this.options
-    let {record_delimiter} = this.options
-    const {bomSkipped, previousBuf, rawBuffer, escapeIsQuote} = this.state
-    let buf
-    if(previousBuf === undefined){
-      if(nextBuf === undefined){
-        // Handle empty string
-        this.push(null)
-        return
-      }else{
-        buf = nextBuf
-      }
-    }else if(previousBuf !== undefined && nextBuf === undefined){
-      buf = previousBuf
-    }else{
-      buf = Buffer.concat([previousBuf, nextBuf])
-    }
-    // Handle UTF BOM
-    if(bomSkipped === false){
-      if(bom === false){
-        this.state.bomSkipped = true
-      }else if(buf.length < 3){
-        // No enough data
-        if(end === false){
-          // Wait for more data
-          this.state.previousBuf = buf
-          return
-        }
-      }else{
-        for(let encoding in boms){
-          if(boms[encoding].compare(buf, 0, boms[encoding].length) === 0){
-            // Skip BOM
-            buf = buf.slice(boms[encoding].length)
-            // Renormalize original options with the new encoding
-            this.__normalizeOptions({...this.__originalOptions, encoding: encoding})
-            break
-          }
-        }
-        this.state.bomSkipped = true
-      }
-    }
-    const bufLen = buf.length
-    let pos
-    for(pos = 0; pos < bufLen; pos++){
-      // Ensure we get enough space to look ahead
-      // There should be a way to move this out of the loop
-      if(this.__needMoreData(pos, bufLen, end)){
-        break
-      }
-      if(this.state.wasRowDelimiter === true){
-        this.info.lines++
-        if(info === true && this.state.record.length === 0 && this.state.field.length === 0 && this.state.wasQuoting === false){
-          this.state.info = Object.assign({}, this.info)
-        }
-        this.state.wasRowDelimiter = false
-      }
-      if(to_line !== -1 && this.info.lines > to_line){
-        this.state.stop = true
-        this.push(null)
-        return
-      }
-      // Auto discovery of record_delimiter, unix, mac and windows supported
-      if(this.state.quoting === false && record_delimiter.length === 0){
-        const record_delimiterCount = this.__autoDiscoverRecordDelimiter(buf, pos)
-        if(record_delimiterCount){
-          record_delimiter = this.options.record_delimiter
-        }
-      }
-      const chr = buf[pos]
-      if(raw === true){
-        rawBuffer.append(chr)
-      }
-      if((chr === cr || chr === nl) && this.state.wasRowDelimiter === false ){
-        this.state.wasRowDelimiter = true
-      }
-      // Previous char was a valid escape char
-      // treat the current char as a regular char
-      if(this.state.escaping === true){
-        this.state.escaping = false
-      }else{
-        // Escape is only active inside quoted fields
-        // We are quoting, the char is an escape chr and there is a chr to escape
-        // if(escape !== null && this.state.quoting === true && chr === escape && pos + 1 < bufLen){
-        if(escape !== null && this.state.quoting === true && this.__isEscape(buf, pos, chr) && pos + escape.length < bufLen){
-          if(escapeIsQuote){
-            if(this.__isQuote(buf, pos+escape.length)){
-              this.state.escaping = true
-              pos += escape.length - 1
-              continue
-            }
-          }else{
-            this.state.escaping = true
-            pos += escape.length - 1
-            continue
-          }
-        }
-        // Not currently escaping and chr is a quote
-        // TODO: need to compare bytes instead of single char
-        if(this.state.commenting === false && this.__isQuote(buf, pos)){
-          if(this.state.quoting === true){
-            const nextChr = buf[pos+quote.length]
-            const isNextChrTrimable = rtrim && this.__isCharTrimable(nextChr)
-            const isNextChrComment = comment !== null && this.__compareBytes(comment, buf, pos+quote.length, nextChr)
-            const isNextChrDelimiter = this.__isDelimiter(buf, pos+quote.length, nextChr)
-            const isNextChrRecordDelimiter = record_delimiter.length === 0 ? this.__autoDiscoverRecordDelimiter(buf, pos+quote.length) : this.__isRecordDelimiter(nextChr, buf, pos+quote.length)
-            // Escape a quote
-            // Treat next char as a regular character
-            if(escape !== null && this.__isEscape(buf, pos, chr) && this.__isQuote(buf, pos + escape.length)){
-              pos += escape.length - 1
-            }else if(!nextChr || isNextChrDelimiter || isNextChrRecordDelimiter || isNextChrComment || isNextChrTrimable){
-              this.state.quoting = false
-              this.state.wasQuoting = true
-              pos += quote.length - 1
-              continue
-            }else if(relax === false){
-              const err = this.__error(
-                new CsvError('CSV_INVALID_CLOSING_QUOTE', [
-                  'Invalid Closing Quote:',
-                  `got "${String.fromCharCode(nextChr)}"`,
-                  `at line ${this.info.lines}`,
-                  'instead of delimiter, record delimiter, trimable character',
-                  '(if activated) or comment',
-                ], this.options, this.__context())
-              )
-              if(err !== undefined) return err
-            }else{
-              this.state.quoting = false
-              this.state.wasQuoting = true
-              this.state.field.prepend(quote)
-              pos += quote.length - 1
-            }
-          }else{
-            if(this.state.field.length !== 0){
-              // In relax mode, treat opening quote preceded by chrs as regular
-              if( relax === false ){
-                const err = this.__error(
-                  new CsvError('INVALID_OPENING_QUOTE', [
-                    'Invalid Opening Quote:',
-                    `a quote is found inside a field at line ${this.info.lines}`,
-                  ], this.options, this.__context(), {
-                    field: this.state.field,
-                  })
-                )
-                if(err !== undefined) return err
-              }
-            }else{
-              this.state.quoting = true
-              pos += quote.length - 1
-              continue
-            }
-          }
-        }
-        if(this.state.quoting === false){
-          let recordDelimiterLength = this.__isRecordDelimiter(chr, buf, pos)
-          if(recordDelimiterLength !== 0){
-            // Do not emit comments which take a full line
-            const skipCommentLine = this.state.commenting && (this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0)
-            if(skipCommentLine){
-              this.info.comment_lines++
-              // Skip full comment line
-            }else{
-              // Activate records emition if above from_line
-              if(this.state.enabled === false && this.info.lines + (this.state.wasRowDelimiter === true ? 1: 0) >= from_line){
-                this.state.enabled = true
-                this.__resetField()
-                this.__resetRecord()
-                pos += recordDelimiterLength - 1
-                continue
-              }
-              // Skip if line is empty and skip_empty_lines activated
-              if(skip_empty_lines === true && this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0){
-                this.info.empty_lines++
-                pos += recordDelimiterLength - 1
-                continue
-              }
-              const errField = this.__onField()
-              if(errField !== undefined) return errField
-              const errRecord = this.__onRecord()
-              if(errRecord !== undefined) return errRecord
-              if(to !== -1 && this.info.records >= to){
-                this.state.stop = true
-                this.push(null)
-                return
-              }
-            }
-            this.state.commenting = false
-            pos += recordDelimiterLength - 1
-            continue
-          }
-          if(this.state.commenting){
-            continue
-          }
-          const commentCount = comment === null ? 0 : this.__compareBytes(comment, buf, pos, chr)
-          if(commentCount !== 0){
-            this.state.commenting = true
-            continue
-          }
-          let delimiterLength = this.__isDelimiter(buf, pos, chr)
-          if(delimiterLength !== 0){
-            const errField = this.__onField()
-            if(errField !== undefined) return errField
-            pos += delimiterLength - 1
-            continue
-          }
-        }
-      }
-      if(this.state.commenting === false){
-        if(max_record_size !== 0 && this.state.record_length + this.state.field.length > max_record_size){
-          const err = this.__error(
-            new CsvError('CSV_MAX_RECORD_SIZE', [
-              'Max Record Size:',
-              'record exceed the maximum number of tolerated bytes',
-              `of ${max_record_size}`,
-              `at line ${this.info.lines}`,
-            ], this.options, this.__context())
-          )
-          if(err !== undefined) return err
-        }
-      }
-
-      const lappend = ltrim === false || this.state.quoting === true || this.state.field.length !== 0 || !this.__isCharTrimable(chr)
-      // rtrim in non quoting is handle in __onField
-      const rappend = rtrim === false || this.state.wasQuoting === false
-      if( lappend === true && rappend === true ){
-        this.state.field.append(chr)
-      }else if(rtrim === true && !this.__isCharTrimable(chr)){
-        const err = this.__error(
-          new CsvError('CSV_NON_TRIMABLE_CHAR_AFTER_CLOSING_QUOTE', [
-            'Invalid Closing Quote:',
-            'found non trimable byte after quote',
-            `at line ${this.info.lines}`,
-          ], this.options, this.__context())
-        )
-        if(err !== undefined) return err
-      }
-    }
-    if(end === true){
-      // Ensure we are not ending in a quoting state
-      if(this.state.quoting === true){
-        const err = this.__error(
-          new CsvError('CSV_QUOTE_NOT_CLOSED', [
-            'Quote Not Closed:',
-            `the parsing is finished with an opening quote at line ${this.info.lines}`,
-          ], this.options, this.__context())
-        )
-        if(err !== undefined) return err
-      }else{
-        // Skip last line if it has no characters
-        if(this.state.wasQuoting === true || this.state.record.length !== 0 || this.state.field.length !== 0){
-          const errField = this.__onField()
-          if(errField !== undefined) return errField
-          const errRecord = this.__onRecord()
-          if(errRecord !== undefined) return errRecord
-        }else if(this.state.wasRowDelimiter === true){
-          this.info.empty_lines++
-        }else if(this.state.commenting === true){
-          this.info.comment_lines++
-        }
-      }
-    }else{
-      this.state.previousBuf = buf.slice(pos)
-    }
-    if(this.state.wasRowDelimiter === true){
-      this.info.lines++
-      this.state.wasRowDelimiter = false
-    }
-  }
-  __onRecord(){
-    const {columns, columns_duplicates_to_array, encoding, info, from, relax_column_count, relax_column_count_less, relax_column_count_more, raw, skip_lines_with_empty_values} = this.options
-    const {enabled, record} = this.state
-    if(enabled === false){
-      return this.__resetRecord()
-    }
-    // Convert the first line into column names
-    const recordLength = record.length
-    if(columns === true){
-      if(isRecordEmpty(record)){
-        this.__resetRecord()
-        return
-      }
-      return this.__firstLineToColumns(record)
-    }
-    if(columns === false && this.info.records === 0){
-      this.state.expectedRecordLength = recordLength
-    }
-    if(recordLength !== this.state.expectedRecordLength){
-      const err = columns === false ?
-        // Todo: rename CSV_INCONSISTENT_RECORD_LENGTH to
-        // CSV_RECORD_INCONSISTENT_FIELDS_LENGTH
-        new CsvError('CSV_INCONSISTENT_RECORD_LENGTH', [
-          'Invalid Record Length:',
-          `expect ${this.state.expectedRecordLength},`,
-          `got ${recordLength} on line ${this.info.lines}`,
-        ], this.options, this.__context(), {
-          record: record,
-        })
-      :
-        // Todo: rename CSV_RECORD_DONT_MATCH_COLUMNS_LENGTH to
-        // CSV_RECORD_INCONSISTENT_COLUMNS
-        new CsvError('CSV_RECORD_DONT_MATCH_COLUMNS_LENGTH', [
-          'Invalid Record Length:',
-          `columns length is ${columns.length},`, // rename columns
-          `got ${recordLength} on line ${this.info.lines}`,
-        ], this.options, this.__context(), {
-          record: record,
-        })
-      if(relax_column_count === true || 
-        (relax_column_count_less === true && recordLength < this.state.expectedRecordLength) ||
-        (relax_column_count_more === true && recordLength > this.state.expectedRecordLength) ){
-        this.info.invalid_field_length++
-        this.state.error = err
-      // Error is undefined with skip_lines_with_error
-      }else{
-        const finalErr = this.__error(err)
-        if(finalErr) return finalErr
-      }
-    }
-    if(skip_lines_with_empty_values === true){
-      if(isRecordEmpty(record)){
-        this.__resetRecord()
-        return
-      }
-    }
-    if(this.state.recordHasError === true){
-      this.__resetRecord()
-      this.state.recordHasError = false
-      return
-    }
-    this.info.records++
-    if(from === 1 || this.info.records >= from){
-      if(columns !== false){
-        const obj = {}
-        // Transform record array to an object
-        for(let i = 0, l = record.length; i < l; i++){
-          if(columns[i] === undefined || columns[i].disabled) continue
-          // Turn duplicate columns into an array
-          if (columns_duplicates_to_array === true && obj[columns[i].name]) {
-            if (Array.isArray(obj[columns[i].name])) {
-              obj[columns[i].name] = obj[columns[i].name].concat(record[i])
-            } else {
-              obj[columns[i].name] = [obj[columns[i].name], record[i]]
-            }
-          } else {
-            obj[columns[i].name] = record[i]
-          }
-        }
-        const {objname} = this.options
-        if(objname === undefined){
-          if(raw === true || info === true){
-            const err = this.__push(Object.assign(
-              {record: obj},
-              (raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {}),
-              (info === true ? {info: this.state.info}: {})
-            ))
-            if(err){
-              return err
-            }
-          }else{
-            const err = this.__push(obj)
-            if(err){
-              return err
-            }
-          }
-        }else{
-          if(raw === true || info === true){
-            const err = this.__push(Object.assign(
-              {record: [obj[objname], obj]},
-              raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {},
-              info === true ? {info: this.state.info}: {}
-            ))
-            if(err){
-              return err
-            }
-          }else{
-            const err = this.__push([obj[objname], obj])
-            if(err){
-              return err
-            }
-          }
-        }
-      }else{
-        if(raw === true || info === true){
-          const err = this.__push(Object.assign(
-            {record: record},
-            raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {},
-            info === true ? {info: this.state.info}: {}
-          ))
-          if(err){
-            return err
-          }
-        }else{
-          const err = this.__push(record)
-          if(err){
-            return err
-          }
-        }
-      }
-    }
-    this.__resetRecord()
-  }
-  __firstLineToColumns(record){
-    const {firstLineToHeaders} = this.state
-    try{
-      const headers = firstLineToHeaders === undefined ? record : firstLineToHeaders.call(null, record)
-      if(!Array.isArray(headers)){
-        return this.__error(
-          new CsvError('CSV_INVALID_COLUMN_MAPPING', [
-            'Invalid Column Mapping:',
-            'expect an array from column function,',
-            `got ${JSON.stringify(headers)}`
-          ], this.options, this.__context(), {
-            headers: headers,
-          })
-        )
-      }
-      const normalizedHeaders = normalizeColumnsArray(headers)
-      this.state.expectedRecordLength = normalizedHeaders.length
-      this.options.columns = normalizedHeaders
-      this.__resetRecord()
-      return
-    }catch(err){
-      return err
-    }
-  }
-  __resetRecord(){
-    if(this.options.raw === true){
-      this.state.rawBuffer.reset()
-    }
-    this.state.error = undefined
-    this.state.record = []
-    this.state.record_length = 0
-  }
-  __onField(){
-    const {cast, encoding, rtrim, max_record_size} = this.options
-    const {enabled, wasQuoting} = this.state
-    // Short circuit for the from_line options
-    if(enabled === false){ /* this.options.columns !== true && */
-      return this.__resetField()
-    }
-    let field = this.state.field.toString(encoding)
-    if(rtrim === true && wasQuoting === false){
-      field = field.trimRight()
-    }
-    if(cast === true){
-      const [err, f] = this.__cast(field)
-      if(err !== undefined) return err
-      field = f
-    }
-    this.state.record.push(field)
-    // Increment record length if record size must not exceed a limit
-    if(max_record_size !== 0 && typeof field === 'string'){
-      this.state.record_length += field.length
-    }
-    this.__resetField()
-  }
-  __resetField(){
-    this.state.field.reset()
-    this.state.wasQuoting = false
-  }
-  __push(record){
-    const {on_record} = this.options
-    if(on_record !== undefined){
-      const context = this.__context()
-      try{
-        record = on_record.call(null, record, context)
-      }catch(err){
-        return err
-      }
-      if(record === undefined || record === null){ return }
-    }
-    this.push(record)
-  }
-  // Return a tuple with the error and the casted value
-  __cast(field){
-    const {columns, relax_column_count} = this.options
-    const isColumns = Array.isArray(columns)
-    // Dont loose time calling cast
-    // because the final record is an object
-    // and this field can't be associated to a key present in columns
-    if( isColumns === true && relax_column_count && this.options.columns.length <= this.state.record.length ){
-      return [undefined, undefined]
-    }
-    const context = this.__context()
-    if(this.state.castField !== null){
-      try{
-        return [undefined, this.state.castField.call(null, field, context)]
-      }catch(err){
-        return [err]
-      }
-    }
-    if(this.__isFloat(field)){
-      return [undefined, parseFloat(field)]
-    }else if(this.options.cast_date !== false){
-      return [undefined, this.options.cast_date.call(null, field, context)]
-    }
-    return [undefined, field]
-  }
-  // Helper to test if a character is a space or a line delimiter
-  __isCharTrimable(chr){
-    return chr === space || chr === tab || chr === cr || chr === nl || chr === np
-  }
-  // Keep it in case we implement the `cast_int` option
-  // __isInt(value){
-  //   // return Number.isInteger(parseInt(value))
-  //   // return !isNaN( parseInt( obj ) );
-  //   return /^(\-|\+)?[1-9][0-9]*$/.test(value)
-  // }
-  __isFloat(value){
-    return (value - parseFloat( value ) + 1) >= 0 // Borrowed from jquery
-  }
-  __compareBytes(sourceBuf, targetBuf, targetPos, firstByte){
-    if(sourceBuf[0] !== firstByte) return 0
-    const sourceLength = sourceBuf.length
-    for(let i = 1; i < sourceLength; i++){
-      if(sourceBuf[i] !== targetBuf[targetPos+i]) return 0
-    }
-    return sourceLength
-  }
-  __needMoreData(i, bufLen, end){
-    if(end) return false
-    const {quote} = this.options
-    const {quoting, needMoreDataSize, recordDelimiterMaxLength} = this.state
-    const numOfCharLeft = bufLen - i - 1
-    const requiredLength = Math.max(
-      needMoreDataSize,
-      // Skip if the remaining buffer smaller than record delimiter
-      recordDelimiterMaxLength,
-      // Skip if the remaining buffer can be record delimiter following the closing quote
-      // 1 is for quote.length
-      quoting ? (quote.length + recordDelimiterMaxLength) : 0,
-    )
-    return numOfCharLeft < requiredLength
-  }
-  __isDelimiter(buf, pos, chr){
-    const {delimiter, ignore_last_delimiters} = this.options
-    if(ignore_last_delimiters === true && this.state.record.length === this.options.columns.length - 1){
-      return 0
-    }else if(ignore_last_delimiters !== false && typeof ignore_last_delimiters === 'number' && this.state.record.length === ignore_last_delimiters - 1){
-      return 0
-    }
-    loop1: for(let i = 0; i < delimiter.length; i++){
-      const del = delimiter[i]
-      if(del[0] === chr){
-        for(let j = 1; j < del.length; j++){
-          if(del[j] !== buf[pos+j]) continue loop1
-        }
-        return del.length
-      }
-    }
-    return 0
-  }
-  __isRecordDelimiter(chr, buf, pos){
-    const {record_delimiter} = this.options
-    const recordDelimiterLength = record_delimiter.length
-    loop1: for(let i = 0; i < recordDelimiterLength; i++){
-      const rd = record_delimiter[i]
-      const rdLength = rd.length
-      if(rd[0] !== chr){
-        continue
-      }
-      for(let j = 1; j < rdLength; j++){
-        if(rd[j] !== buf[pos+j]){
-          continue loop1
-        }
-      }
-      return rd.length
-    }
-    return 0
-  }
-  __isEscape(buf, pos, chr){
-    const {escape} = this.options
-    if(escape === null) return false
-    const l = escape.length
-    if(escape[0] === chr){
-      for(let i = 0; i < l; i++){
-        if(escape[i] !== buf[pos+i]){
-          return false
-        }
-      }
-      return true
-    }
-    return false
-  }
-  __isQuote(buf, pos){
-    const {quote} = this.options
-    if(quote === null) return false
-    const l = quote.length
-    for(let i = 0; i < l; i++){
-      if(quote[i] !== buf[pos+i]){
-        return false
-      }
-    }
-    return true
-  }
-  __autoDiscoverRecordDelimiter(buf, pos){
-    const {encoding} = this.options
-    const chr = buf[pos]
-    if(chr === cr){
-      if(buf[pos+1] === nl){
-        this.options.record_delimiter.push(Buffer.from('\r\n', encoding))
-        this.state.recordDelimiterMaxLength = 2
-        return 2
-      }else{
-        this.options.record_delimiter.push(Buffer.from('\r', encoding))
-        this.state.recordDelimiterMaxLength = 1
-        return 1
-      }
-    }else if(chr === nl){
-      this.options.record_delimiter.push(Buffer.from('\n', encoding))
-      this.state.recordDelimiterMaxLength = 1
-      return 1
-    }
-    return 0
-  }
-  __error(msg){
-    const {skip_lines_with_error} = this.options
-    const err = typeof msg === 'string' ? new Error(msg) : msg
-    if(skip_lines_with_error){
-      this.state.recordHasError = true
-      this.emit('skip', err)
-      return undefined
-    }else{
-      return err
-    }
-  }
-  __context(){
-    const {columns} = this.options
-    const isColumns = Array.isArray(columns)
-    return {
-      column: isColumns === true ?
-        ( columns.length > this.state.record.length ?
-          columns[this.state.record.length].name :
-          null
-        ) :
-        this.state.record.length,
-      empty_lines: this.info.empty_lines,
-      error: this.state.error,
-      header: columns === true,
-      index: this.state.record.length,
-      invalid_field_length: this.info.invalid_field_length,
-      quoting: this.state.wasQuoting,
-      lines: this.info.lines,
-      records: this.info.records
-    }
-  }
-}
-
-const parse = function(){
-  let data, options, callback
-  for(let i in arguments){
-    const argument = arguments[i]
-    const type = typeof argument
-    if(data === undefined && (typeof argument === 'string' || Buffer.isBuffer(argument))){
-      data = argument
-    }else if(options === undefined && isObject(argument)){
-      options = argument
-    }else if(callback === undefined && type === 'function'){
-      callback = argument
-    }else{
-      throw new CsvError('CSV_INVALID_ARGUMENT', [
-        'Invalid argument:',
-        `got ${JSON.stringify(argument)} at index ${i}`
-      ], this.options)
-    }
-  }
-  const parser = new Parser(options)
-  if(callback){
-    const records = options === undefined || options.objname === undefined ? [] : {}
-    parser.on('readable', function(){
-      let record
-      while((record = this.read()) !== null){
-        if(options === undefined || options.objname === undefined){
-          records.push(record)
-        }else{
-          records[record[0]] = record[1]
-        }
-      }
-    })
-    parser.on('error', function(err){
-      callback(err, undefined, parser.info)
-    })
-    parser.on('end', function(){
-      callback(undefined, records, parser.info)
-    })
-  }
-  if(data !== undefined){
-    // Give a chance for events to be registered later
-    if(typeof setImmediate === 'function'){
-      setImmediate(function(){
-        parser.write(data)
-        parser.end()
-      })
-    }else{
-      parser.write(data)
-      parser.end()
-    }
-  }
-  return parser
-}
-
-class CsvError extends Error {
-  constructor(code, message, options, ...contexts) {
-    if(Array.isArray(message)) message = message.join(' ')
-    super(message)
-    if(Error.captureStackTrace !== undefined){
-      Error.captureStackTrace(this, CsvError)
-    }
-    this.code = code
-    for(const context of contexts){
-      for(const key in context){
-        const value = context[key]
-        this[key] = Buffer.isBuffer(value) ? value.toString(options.encoding) : value == null ? value : JSON.parse(JSON.stringify(value))
-      }
-    }
-  }
-}
-
-parse.Parser = Parser
-
-parse.CsvError = CsvError
-
-module.exports = parse
-
-const underscore = function(str){
-  return str.replace(/([A-Z])/g, function(_, match){
-    return '_' + match.toLowerCase()
-  })
-}
-
-const isObject = function(obj){
-  return (typeof obj === 'object' && obj !== null && !Array.isArray(obj))
-}
-
-const isRecordEmpty = function(record){
-  return record.every( (field) => field == null || field.toString && field.toString().trim() === '' )
-}
-
-const normalizeColumnsArray = function(columns){
-  const normalizedColumns = [];
-  for(let i = 0, l = columns.length; i < l; i++){
-    const column = columns[i]
-    if(column === undefined || column === null || column === false){
-      normalizedColumns[i] = { disabled: true }
-    }else if(typeof column === 'string'){
-      normalizedColumns[i] = { name: column }
-    }else if(isObject(column)){
-      if(typeof column.name !== 'string'){
-        throw new CsvError('CSV_OPTION_COLUMNS_MISSING_NAME', [
-          'Option columns missing name:',
-          `property "name" is required at position ${i}`,
-          'when column is an object literal'
-        ])
-      }
-      normalizedColumns[i] = column
-    }else{
-      throw new CsvError('CSV_INVALID_COLUMN_DEFINITION', [
-        'Invalid column definition:',
-        'expect a string or a literal object,',
-        `got ${JSON.stringify(column)} at position ${i}`
-      ])
-    }
-  }
-  return normalizedColumns;
-}
-
-
-/***/ }),
-
-/***/ 8750:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-const parse = __nccwpck_require__(2830)
-
-module.exports = function(data, options={}){
-  if(typeof data === 'string'){
-    data = Buffer.from(data)
-  }
-  const records = options && options.objname ? {} : []
-  const parser = new parse.Parser(options)
-  parser.push = function(record){
-    if(record === null){
-      return
-    }
-    if(options.objname === undefined)
-      records.push(record)
-    else{
-      records[record[0]] = record[1]
-    }
-  }
-  const err1 = parser.__parse(data, false)
-  if(err1 !== undefined) throw err1
-  const err2 = parser.__parse(undefined, true)
-  if(err2 !== undefined) throw err2
-  return records
 }
 
 
@@ -11345,11 +10671,1319 @@ module.exports = eval("require")("encoding");
 
 /***/ }),
 
+/***/ 8318:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+var stream = __nccwpck_require__(2413);
+
+class ResizeableBuffer{
+  constructor(size=100){
+    this.size = size;
+    this.length = 0;
+    this.buf = Buffer.allocUnsafe(size);
+  }
+  prepend(val){
+    if(Buffer.isBuffer(val)){
+      const length = this.length + val.length;
+      if(length >= this.size){
+        this.resize();
+        if(length >= this.size){
+          throw Error('INVALID_BUFFER_STATE');
+        }
+      }
+      const buf = this.buf;
+      this.buf = Buffer.allocUnsafe(this.size);
+      val.copy(this.buf, 0);
+      buf.copy(this.buf, val.length);
+      this.length += val.length;
+    }else {
+      const length = this.length++;
+      if(length === this.size){
+        this.resize();
+      }
+      const buf = this.clone();
+      this.buf[0] = val;
+      buf.copy(this.buf,1, 0, length);
+    }
+  }
+  append(val){
+    const length = this.length++;
+    if(length === this.size){
+      this.resize();
+    }
+    this.buf[length] = val;
+  }
+  clone(){
+    return Buffer.from(this.buf.slice(0, this.length));
+  }
+  resize(){
+    const length = this.length;
+    this.size = this.size * 2;
+    const buf = Buffer.allocUnsafe(this.size);
+    this.buf.copy(buf,0, 0, length);
+    this.buf = buf;
+  }
+  toString(encoding){
+    if(encoding){
+      return this.buf.slice(0, this.length).toString(encoding);
+    }else {
+      return Uint8Array.prototype.slice.call(this.buf.slice(0, this.length));
+    }
+  }
+  toJSON(){
+    return this.toString('utf8');
+  }
+  reset(){
+    this.length = 0;
+  }
+}
+
+// white space characters
+// https://en.wikipedia.org/wiki/Whitespace_character
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Character_Classes#Types
+// \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff
+const tab = 9;
+const nl = 10; // \n, 0x0A in hexadecimal, 10 in decimal
+const np = 12;
+const cr = 13; // \r, 0x0D in hexadécimal, 13 in decimal
+const space = 32;
+const boms = {
+  // Note, the following are equals:
+  // Buffer.from("\ufeff")
+  // Buffer.from([239, 187, 191])
+  // Buffer.from('EFBBBF', 'hex')
+  'utf8': Buffer.from([239, 187, 191]),
+  // Note, the following are equals:
+  // Buffer.from "\ufeff", 'utf16le
+  // Buffer.from([255, 254])
+  'utf16le': Buffer.from([255, 254])
+};
+
+class CsvError extends Error {
+  constructor(code, message, options, ...contexts) {
+    if(Array.isArray(message)) message = message.join(' ');
+    super(message);
+    if(Error.captureStackTrace !== undefined){
+      Error.captureStackTrace(this, CsvError);
+    }
+    this.code = code;
+    for(const context of contexts){
+      for(const key in context){
+        const value = context[key];
+        this[key] = Buffer.isBuffer(value) ? value.toString(options.encoding) : value == null ? value : JSON.parse(JSON.stringify(value));
+      }
+    }
+  }
+}
+
+const underscore = function(str){
+  return str.replace(/([A-Z])/g, function(_, match){
+    return '_' + match.toLowerCase();
+  });
+};
+
+const isObject = function(obj){
+  return (typeof obj === 'object' && obj !== null && !Array.isArray(obj));
+};
+
+const isRecordEmpty = function(record){
+  return record.every((field) => field == null || field.toString && field.toString().trim() === '');
+};
+
+const normalizeColumnsArray = function(columns){
+  const normalizedColumns = [];
+  for(let i = 0, l = columns.length; i < l; i++){
+    const column = columns[i];
+    if(column === undefined || column === null || column === false){
+      normalizedColumns[i] = { disabled: true };
+    }else if(typeof column === 'string'){
+      normalizedColumns[i] = { name: column };
+    }else if(isObject(column)){
+      if(typeof column.name !== 'string'){
+        throw new CsvError('CSV_OPTION_COLUMNS_MISSING_NAME', [
+          'Option columns missing name:',
+          `property "name" is required at position ${i}`,
+          'when column is an object literal'
+        ]);
+      }
+      normalizedColumns[i] = column;
+    }else {
+      throw new CsvError('CSV_INVALID_COLUMN_DEFINITION', [
+        'Invalid column definition:',
+        'expect a string or a literal object,',
+        `got ${JSON.stringify(column)} at position ${i}`
+      ]);
+    }
+  }
+  return normalizedColumns;
+};
+
+class Parser extends stream.Transform {
+  constructor(opts = {}){
+    super({...{readableObjectMode: true}, ...opts, encoding: null});
+    this.__originalOptions = opts;
+    this.__normalizeOptions(opts);
+  }
+  __normalizeOptions(opts){
+    const options = {};
+    // Merge with user options
+    for(const opt in opts){
+      options[underscore(opt)] = opts[opt];
+    }
+    // Normalize option `encoding`
+    // Note: defined first because other options depends on it
+    // to convert chars/strings into buffers.
+    if(options.encoding === undefined || options.encoding === true){
+      options.encoding = 'utf8';
+    }else if(options.encoding === null || options.encoding === false){
+      options.encoding = null;
+    }else if(typeof options.encoding !== 'string' && options.encoding !== null){
+      throw new CsvError('CSV_INVALID_OPTION_ENCODING', [
+        'Invalid option encoding:',
+        'encoding must be a string or null to return a buffer,',
+        `got ${JSON.stringify(options.encoding)}`
+      ], options);
+    }
+    // Normalize option `bom`
+    if(options.bom === undefined || options.bom === null || options.bom === false){
+      options.bom = false;
+    }else if(options.bom !== true){
+      throw new CsvError('CSV_INVALID_OPTION_BOM', [
+        'Invalid option bom:', 'bom must be true,',
+        `got ${JSON.stringify(options.bom)}`
+      ], options);
+    }
+    // Normalize option `cast`
+    let fnCastField = null;
+    if(options.cast === undefined || options.cast === null || options.cast === false || options.cast === ''){
+      options.cast = undefined;
+    }else if(typeof options.cast === 'function'){
+      fnCastField = options.cast;
+      options.cast = true;
+    }else if(options.cast !== true){
+      throw new CsvError('CSV_INVALID_OPTION_CAST', [
+        'Invalid option cast:', 'cast must be true or a function,',
+        `got ${JSON.stringify(options.cast)}`
+      ], options);
+    }
+    // Normalize option `cast_date`
+    if(options.cast_date === undefined || options.cast_date === null || options.cast_date === false || options.cast_date === ''){
+      options.cast_date = false;
+    }else if(options.cast_date === true){
+      options.cast_date = function(value){
+        const date = Date.parse(value);
+        return !isNaN(date) ? new Date(date) : value;
+      };
+    }else {
+      throw new CsvError('CSV_INVALID_OPTION_CAST_DATE', [
+        'Invalid option cast_date:', 'cast_date must be true or a function,',
+        `got ${JSON.stringify(options.cast_date)}`
+      ], options);
+    }
+    // Normalize option `columns`
+    let fnFirstLineToHeaders = null;
+    if(options.columns === true){
+      // Fields in the first line are converted as-is to columns
+      fnFirstLineToHeaders = undefined;
+    }else if(typeof options.columns === 'function'){
+      fnFirstLineToHeaders = options.columns;
+      options.columns = true;
+    }else if(Array.isArray(options.columns)){
+      options.columns = normalizeColumnsArray(options.columns);
+    }else if(options.columns === undefined || options.columns === null || options.columns === false){
+      options.columns = false;
+    }else {
+      throw new CsvError('CSV_INVALID_OPTION_COLUMNS', [
+        'Invalid option columns:',
+        'expect an array, a function or true,',
+        `got ${JSON.stringify(options.columns)}`
+      ], options);
+    }
+    // Normalize option `group_columns_by_name`
+    if(options.group_columns_by_name === undefined || options.group_columns_by_name === null || options.group_columns_by_name === false){
+      options.group_columns_by_name = false;
+    }else if(options.group_columns_by_name !== true){
+      throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
+        'Invalid option group_columns_by_name:',
+        'expect an boolean,',
+        `got ${JSON.stringify(options.group_columns_by_name)}`
+      ], options);
+    }else if(options.columns === false){
+      throw new CsvError('CSV_INVALID_OPTION_GROUP_COLUMNS_BY_NAME', [
+        'Invalid option group_columns_by_name:',
+        'the `columns` mode must be activated.'
+      ], options);
+    }
+    // Normalize option `comment`
+    if(options.comment === undefined || options.comment === null || options.comment === false || options.comment === ''){
+      options.comment = null;
+    }else {
+      if(typeof options.comment === 'string'){
+        options.comment = Buffer.from(options.comment, options.encoding);
+      }
+      if(!Buffer.isBuffer(options.comment)){
+        throw new CsvError('CSV_INVALID_OPTION_COMMENT', [
+          'Invalid option comment:',
+          'comment must be a buffer or a string,',
+          `got ${JSON.stringify(options.comment)}`
+        ], options);
+      }
+    }
+    // Normalize option `delimiter`
+    const delimiter_json = JSON.stringify(options.delimiter);
+    if(!Array.isArray(options.delimiter)) options.delimiter = [options.delimiter];
+    if(options.delimiter.length === 0){
+      throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
+        'Invalid option delimiter:',
+        'delimiter must be a non empty string or buffer or array of string|buffer,',
+        `got ${delimiter_json}`
+      ], options);
+    }
+    options.delimiter = options.delimiter.map(function(delimiter){
+      if(delimiter === undefined || delimiter === null || delimiter === false){
+        return Buffer.from(',', options.encoding);
+      }
+      if(typeof delimiter === 'string'){
+        delimiter = Buffer.from(delimiter, options.encoding);
+      }
+      if(!Buffer.isBuffer(delimiter) || delimiter.length === 0){
+        throw new CsvError('CSV_INVALID_OPTION_DELIMITER', [
+          'Invalid option delimiter:',
+          'delimiter must be a non empty string or buffer or array of string|buffer,',
+          `got ${delimiter_json}`
+        ], options);
+      }
+      return delimiter;
+    });
+    // Normalize option `escape`
+    if(options.escape === undefined || options.escape === true){
+      options.escape = Buffer.from('"', options.encoding);
+    }else if(typeof options.escape === 'string'){
+      options.escape = Buffer.from(options.escape, options.encoding);
+    }else if (options.escape === null || options.escape === false){
+      options.escape = null;
+    }
+    if(options.escape !== null){
+      if(!Buffer.isBuffer(options.escape)){
+        throw new Error(`Invalid Option: escape must be a buffer, a string or a boolean, got ${JSON.stringify(options.escape)}`);
+      }
+    }
+    // Normalize option `from`
+    if(options.from === undefined || options.from === null){
+      options.from = 1;
+    }else {
+      if(typeof options.from === 'string' && /\d+/.test(options.from)){
+        options.from = parseInt(options.from);
+      }
+      if(Number.isInteger(options.from)){
+        if(options.from < 0){
+          throw new Error(`Invalid Option: from must be a positive integer, got ${JSON.stringify(opts.from)}`);
+        }
+      }else {
+        throw new Error(`Invalid Option: from must be an integer, got ${JSON.stringify(options.from)}`);
+      }
+    }
+    // Normalize option `from_line`
+    if(options.from_line === undefined || options.from_line === null){
+      options.from_line = 1;
+    }else {
+      if(typeof options.from_line === 'string' && /\d+/.test(options.from_line)){
+        options.from_line = parseInt(options.from_line);
+      }
+      if(Number.isInteger(options.from_line)){
+        if(options.from_line <= 0){
+          throw new Error(`Invalid Option: from_line must be a positive integer greater than 0, got ${JSON.stringify(opts.from_line)}`);
+        }
+      }else {
+        throw new Error(`Invalid Option: from_line must be an integer, got ${JSON.stringify(opts.from_line)}`);
+      }
+    }
+    // Normalize options `ignore_last_delimiters`
+    if(options.ignore_last_delimiters === undefined || options.ignore_last_delimiters === null){
+      options.ignore_last_delimiters = false;
+    }else if(typeof options.ignore_last_delimiters === 'number'){
+      options.ignore_last_delimiters = Math.floor(options.ignore_last_delimiters);
+      if(options.ignore_last_delimiters === 0){
+        options.ignore_last_delimiters = false;
+      }
+    }else if(typeof options.ignore_last_delimiters !== 'boolean'){
+      throw new CsvError('CSV_INVALID_OPTION_IGNORE_LAST_DELIMITERS', [
+        'Invalid option `ignore_last_delimiters`:',
+        'the value must be a boolean value or an integer,',
+        `got ${JSON.stringify(options.ignore_last_delimiters)}`
+      ], options);
+    }
+    if(options.ignore_last_delimiters === true && options.columns === false){
+      throw new CsvError('CSV_IGNORE_LAST_DELIMITERS_REQUIRES_COLUMNS', [
+        'The option `ignore_last_delimiters`',
+        'requires the activation of the `columns` option'
+      ], options);
+    }
+    // Normalize option `info`
+    if(options.info === undefined || options.info === null || options.info === false){
+      options.info = false;
+    }else if(options.info !== true){
+      throw new Error(`Invalid Option: info must be true, got ${JSON.stringify(options.info)}`);
+    }
+    // Normalize option `max_record_size`
+    if(options.max_record_size === undefined || options.max_record_size === null || options.max_record_size === false){
+      options.max_record_size = 0;
+    }else if(Number.isInteger(options.max_record_size) && options.max_record_size >= 0);else if(typeof options.max_record_size === 'string' && /\d+/.test(options.max_record_size)){
+      options.max_record_size = parseInt(options.max_record_size);
+    }else {
+      throw new Error(`Invalid Option: max_record_size must be a positive integer, got ${JSON.stringify(options.max_record_size)}`);
+    }
+    // Normalize option `objname`
+    if(options.objname === undefined || options.objname === null || options.objname === false){
+      options.objname = undefined;
+    }else if(Buffer.isBuffer(options.objname)){
+      if(options.objname.length === 0){
+        throw new Error(`Invalid Option: objname must be a non empty buffer`);
+      }
+      if(options.encoding === null);else {
+        options.objname = options.objname.toString(options.encoding);
+      }
+    }else if(typeof options.objname === 'string'){
+      if(options.objname.length === 0){
+        throw new Error(`Invalid Option: objname must be a non empty string`);
+      }
+      // Great, nothing to do
+    }else if(typeof options.objname === 'number');else {
+      throw new Error(`Invalid Option: objname must be a string or a buffer, got ${options.objname}`);
+    }
+    if(options.objname !== undefined){
+      if(typeof options.objname === 'number'){
+        if(options.columns !== false){
+          throw Error('Invalid Option: objname index cannot be combined with columns or be defined as a field');
+        }
+      }else { // A string or a buffer
+        if(options.columns === false){
+          throw Error('Invalid Option: objname field must be combined with columns or be defined as an index');
+        }
+      }
+    }
+    // Normalize option `on_record`
+    if(options.on_record === undefined || options.on_record === null){
+      options.on_record = undefined;
+    }else if(typeof options.on_record !== 'function'){
+      throw new CsvError('CSV_INVALID_OPTION_ON_RECORD', [
+        'Invalid option `on_record`:',
+        'expect a function,',
+        `got ${JSON.stringify(options.on_record)}`
+      ], options);
+    }
+    // Normalize option `quote`
+    if(options.quote === null || options.quote === false || options.quote === ''){
+      options.quote = null;
+    }else {
+      if(options.quote === undefined || options.quote === true){
+        options.quote = Buffer.from('"', options.encoding);
+      }else if(typeof options.quote === 'string'){
+        options.quote = Buffer.from(options.quote, options.encoding);
+      }
+      if(!Buffer.isBuffer(options.quote)){
+        throw new Error(`Invalid Option: quote must be a buffer or a string, got ${JSON.stringify(options.quote)}`);
+      }
+    }
+    // Normalize option `raw`
+    if(options.raw === undefined || options.raw === null || options.raw === false){
+      options.raw = false;
+    }else if(options.raw !== true){
+      throw new Error(`Invalid Option: raw must be true, got ${JSON.stringify(options.raw)}`);
+    }
+    // Normalize option `record_delimiter`
+    if(options.record_delimiter === undefined){
+      options.record_delimiter = [];
+    }else if(typeof options.record_delimiter === 'string' || Buffer.isBuffer(options.record_delimiter)){
+      if(options.record_delimiter.length === 0){
+        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+          'Invalid option `record_delimiter`:',
+          'value must be a non empty string or buffer,',
+          `got ${JSON.stringify(options.record_delimiter)}`
+        ], options);
+      }
+      options.record_delimiter = [options.record_delimiter];
+    }else if(!Array.isArray(options.record_delimiter)){
+      throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+        'Invalid option `record_delimiter`:',
+        'value must be a string, a buffer or array of string|buffer,',
+        `got ${JSON.stringify(options.record_delimiter)}`
+      ], options);
+    }
+    options.record_delimiter = options.record_delimiter.map(function(rd, i){
+      if(typeof rd !== 'string' && ! Buffer.isBuffer(rd)){
+        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+          'Invalid option `record_delimiter`:',
+          'value must be a string, a buffer or array of string|buffer',
+          `at index ${i},`,
+          `got ${JSON.stringify(rd)}`
+        ], options);
+      }else if(rd.length === 0){
+        throw new CsvError('CSV_INVALID_OPTION_RECORD_DELIMITER', [
+          'Invalid option `record_delimiter`:',
+          'value must be a non empty string or buffer',
+          `at index ${i},`,
+          `got ${JSON.stringify(rd)}`
+        ], options);
+      }
+      if(typeof rd === 'string'){
+        rd = Buffer.from(rd, options.encoding);
+      }
+      return rd;
+    });
+    // Normalize option `relax_column_count`
+    if(typeof options.relax_column_count === 'boolean');else if(options.relax_column_count === undefined || options.relax_column_count === null){
+      options.relax_column_count = false;
+    }else {
+      throw new Error(`Invalid Option: relax_column_count must be a boolean, got ${JSON.stringify(options.relax_column_count)}`);
+    }
+    if(typeof options.relax_column_count_less === 'boolean');else if(options.relax_column_count_less === undefined || options.relax_column_count_less === null){
+      options.relax_column_count_less = false;
+    }else {
+      throw new Error(`Invalid Option: relax_column_count_less must be a boolean, got ${JSON.stringify(options.relax_column_count_less)}`);
+    }
+    if(typeof options.relax_column_count_more === 'boolean');else if(options.relax_column_count_more === undefined || options.relax_column_count_more === null){
+      options.relax_column_count_more = false;
+    }else {
+      throw new Error(`Invalid Option: relax_column_count_more must be a boolean, got ${JSON.stringify(options.relax_column_count_more)}`);
+    }
+    // Normalize option `relax_quotes`
+    if(typeof options.relax_quotes === 'boolean');else if(options.relax_quotes === undefined || options.relax_quotes === null){
+      options.relax_quotes = false;
+    }else {
+      throw new Error(`Invalid Option: relax_quotes must be a boolean, got ${JSON.stringify(options.relax_quotes)}`);
+    }
+    // Normalize option `skip_empty_lines`
+    if(typeof options.skip_empty_lines === 'boolean');else if(options.skip_empty_lines === undefined || options.skip_empty_lines === null){
+      options.skip_empty_lines = false;
+    }else {
+      throw new Error(`Invalid Option: skip_empty_lines must be a boolean, got ${JSON.stringify(options.skip_empty_lines)}`);
+    }
+    // Normalize option `skip_records_with_empty_values`
+    if(typeof options.skip_records_with_empty_values === 'boolean');else if(options.skip_records_with_empty_values === undefined || options.skip_records_with_empty_values === null){
+      options.skip_records_with_empty_values = false;
+    }else {
+      throw new Error(`Invalid Option: skip_records_with_empty_values must be a boolean, got ${JSON.stringify(options.skip_records_with_empty_values)}`);
+    }
+    // Normalize option `skip_records_with_error`
+    if(typeof options.skip_records_with_error === 'boolean');else if(options.skip_records_with_error === undefined || options.skip_records_with_error === null){
+      options.skip_records_with_error = false;
+    }else {
+      throw new Error(`Invalid Option: skip_records_with_error must be a boolean, got ${JSON.stringify(options.skip_records_with_error)}`);
+    }
+    // Normalize option `rtrim`
+    if(options.rtrim === undefined || options.rtrim === null || options.rtrim === false){
+      options.rtrim = false;
+    }else if(options.rtrim !== true){
+      throw new Error(`Invalid Option: rtrim must be a boolean, got ${JSON.stringify(options.rtrim)}`);
+    }
+    // Normalize option `ltrim`
+    if(options.ltrim === undefined || options.ltrim === null || options.ltrim === false){
+      options.ltrim = false;
+    }else if(options.ltrim !== true){
+      throw new Error(`Invalid Option: ltrim must be a boolean, got ${JSON.stringify(options.ltrim)}`);
+    }
+    // Normalize option `trim`
+    if(options.trim === undefined || options.trim === null || options.trim === false){
+      options.trim = false;
+    }else if(options.trim !== true){
+      throw new Error(`Invalid Option: trim must be a boolean, got ${JSON.stringify(options.trim)}`);
+    }
+    // Normalize options `trim`, `ltrim` and `rtrim`
+    if(options.trim === true && opts.ltrim !== false){
+      options.ltrim = true;
+    }else if(options.ltrim !== true){
+      options.ltrim = false;
+    }
+    if(options.trim === true && opts.rtrim !== false){
+      options.rtrim = true;
+    }else if(options.rtrim !== true){
+      options.rtrim = false;
+    }
+    // Normalize option `to`
+    if(options.to === undefined || options.to === null){
+      options.to = -1;
+    }else {
+      if(typeof options.to === 'string' && /\d+/.test(options.to)){
+        options.to = parseInt(options.to);
+      }
+      if(Number.isInteger(options.to)){
+        if(options.to <= 0){
+          throw new Error(`Invalid Option: to must be a positive integer greater than 0, got ${JSON.stringify(opts.to)}`);
+        }
+      }else {
+        throw new Error(`Invalid Option: to must be an integer, got ${JSON.stringify(opts.to)}`);
+      }
+    }
+    // Normalize option `to_line`
+    if(options.to_line === undefined || options.to_line === null){
+      options.to_line = -1;
+    }else {
+      if(typeof options.to_line === 'string' && /\d+/.test(options.to_line)){
+        options.to_line = parseInt(options.to_line);
+      }
+      if(Number.isInteger(options.to_line)){
+        if(options.to_line <= 0){
+          throw new Error(`Invalid Option: to_line must be a positive integer greater than 0, got ${JSON.stringify(opts.to_line)}`);
+        }
+      }else {
+        throw new Error(`Invalid Option: to_line must be an integer, got ${JSON.stringify(opts.to_line)}`);
+      }
+    }
+    this.info = {
+      bytes: 0,
+      comment_lines: 0,
+      empty_lines: 0,
+      invalid_field_length: 0,
+      lines: 1,
+      records: 0
+    };
+    this.options = options;
+    this.state = {
+      bomSkipped: false,
+      bufBytesStart: 0,
+      castField: fnCastField,
+      commenting: false,
+      // Current error encountered by a record
+      error: undefined,
+      enabled: options.from_line === 1,
+      escaping: false,
+      escapeIsQuote: Buffer.isBuffer(options.escape) && Buffer.isBuffer(options.quote) && Buffer.compare(options.escape, options.quote) === 0,
+      // columns can be `false`, `true`, `Array`
+      expectedRecordLength: Array.isArray(options.columns) ? options.columns.length : undefined,
+      field: new ResizeableBuffer(20),
+      firstLineToHeaders: fnFirstLineToHeaders,
+      needMoreDataSize: Math.max(
+        // Skip if the remaining buffer smaller than comment
+        options.comment !== null ? options.comment.length : 0,
+        // Skip if the remaining buffer can be delimiter
+        ...options.delimiter.map((delimiter) => delimiter.length),
+        // Skip if the remaining buffer can be escape sequence
+        options.quote !== null ? options.quote.length : 0,
+      ),
+      previousBuf: undefined,
+      quoting: false,
+      stop: false,
+      rawBuffer: new ResizeableBuffer(100),
+      record: [],
+      recordHasError: false,
+      record_length: 0,
+      recordDelimiterMaxLength: options.record_delimiter.length === 0 ? 2 : Math.max(...options.record_delimiter.map((v) => v.length)),
+      trimChars: [Buffer.from(' ', options.encoding)[0], Buffer.from('\t', options.encoding)[0]],
+      wasQuoting: false,
+      wasRowDelimiter: false
+    };
+  }
+  // Implementation of `Transform._transform`
+  _transform(buf, encoding, callback){
+    if(this.state.stop === true){
+      return;
+    }
+    const err = this.__parse(buf, false);
+    if(err !== undefined){
+      this.state.stop = true;
+    }
+    callback(err);
+  }
+  // Implementation of `Transform._flush`
+  _flush(callback){
+    if(this.state.stop === true){
+      return;
+    }
+    const err = this.__parse(undefined, true);
+    callback(err);
+  }
+  // Central parser implementation
+  __parse(nextBuf, end){
+    const {bom, comment, escape, from_line, ltrim, max_record_size, quote, raw, relax_quotes, rtrim, skip_empty_lines, to, to_line} = this.options;
+    let {record_delimiter} = this.options;
+    const {bomSkipped, previousBuf, rawBuffer, escapeIsQuote} = this.state;
+    let buf;
+    if(previousBuf === undefined){
+      if(nextBuf === undefined){
+        // Handle empty string
+        this.push(null);
+        return;
+      }else {
+        buf = nextBuf;
+      }
+    }else if(previousBuf !== undefined && nextBuf === undefined){
+      buf = previousBuf;
+    }else {
+      buf = Buffer.concat([previousBuf, nextBuf]);
+    }
+    // Handle UTF BOM
+    if(bomSkipped === false){
+      if(bom === false){
+        this.state.bomSkipped = true;
+      }else if(buf.length < 3){
+        // No enough data
+        if(end === false){
+          // Wait for more data
+          this.state.previousBuf = buf;
+          return;
+        }
+      }else {
+        for(const encoding in boms){
+          if(boms[encoding].compare(buf, 0, boms[encoding].length) === 0){
+            // Skip BOM
+            const bomLength = boms[encoding].length;
+            this.state.bufBytesStart += bomLength;
+            buf = buf.slice(bomLength);
+            // Renormalize original options with the new encoding
+            this.__normalizeOptions({...this.__originalOptions, encoding: encoding});
+            break;
+          }
+        }
+        this.state.bomSkipped = true;
+      }
+    }
+    const bufLen = buf.length;
+    let pos;
+    for(pos = 0; pos < bufLen; pos++){
+      // Ensure we get enough space to look ahead
+      // There should be a way to move this out of the loop
+      if(this.__needMoreData(pos, bufLen, end)){
+        break;
+      }
+      if(this.state.wasRowDelimiter === true){
+        this.info.lines++;
+        this.state.wasRowDelimiter = false;
+      }
+      if(to_line !== -1 && this.info.lines > to_line){
+        this.state.stop = true;
+        this.push(null);
+        return;
+      }
+      // Auto discovery of record_delimiter, unix, mac and windows supported
+      if(this.state.quoting === false && record_delimiter.length === 0){
+        const record_delimiterCount = this.__autoDiscoverRecordDelimiter(buf, pos);
+        if(record_delimiterCount){
+          record_delimiter = this.options.record_delimiter;
+        }
+      }
+      const chr = buf[pos];
+      if(raw === true){
+        rawBuffer.append(chr);
+      }
+      if((chr === cr || chr === nl) && this.state.wasRowDelimiter === false){
+        this.state.wasRowDelimiter = true;
+      }
+      // Previous char was a valid escape char
+      // treat the current char as a regular char
+      if(this.state.escaping === true){
+        this.state.escaping = false;
+      }else {
+        // Escape is only active inside quoted fields
+        // We are quoting, the char is an escape chr and there is a chr to escape
+        // if(escape !== null && this.state.quoting === true && chr === escape && pos + 1 < bufLen){
+        if(escape !== null && this.state.quoting === true && this.__isEscape(buf, pos, chr) && pos + escape.length < bufLen){
+          if(escapeIsQuote){
+            if(this.__isQuote(buf, pos+escape.length)){
+              this.state.escaping = true;
+              pos += escape.length - 1;
+              continue;
+            }
+          }else {
+            this.state.escaping = true;
+            pos += escape.length - 1;
+            continue;
+          }
+        }
+        // Not currently escaping and chr is a quote
+        // TODO: need to compare bytes instead of single char
+        if(this.state.commenting === false && this.__isQuote(buf, pos)){
+          if(this.state.quoting === true){
+            const nextChr = buf[pos+quote.length];
+            const isNextChrTrimable = rtrim && this.__isCharTrimable(nextChr);
+            const isNextChrComment = comment !== null && this.__compareBytes(comment, buf, pos+quote.length, nextChr);
+            const isNextChrDelimiter = this.__isDelimiter(buf, pos+quote.length, nextChr);
+            const isNextChrRecordDelimiter = record_delimiter.length === 0 ? this.__autoDiscoverRecordDelimiter(buf, pos+quote.length) : this.__isRecordDelimiter(nextChr, buf, pos+quote.length);
+            // Escape a quote
+            // Treat next char as a regular character
+            if(escape !== null && this.__isEscape(buf, pos, chr) && this.__isQuote(buf, pos + escape.length)){
+              pos += escape.length - 1;
+            }else if(!nextChr || isNextChrDelimiter || isNextChrRecordDelimiter || isNextChrComment || isNextChrTrimable){
+              this.state.quoting = false;
+              this.state.wasQuoting = true;
+              pos += quote.length - 1;
+              continue;
+            }else if(relax_quotes === false){
+              const err = this.__error(
+                new CsvError('CSV_INVALID_CLOSING_QUOTE', [
+                  'Invalid Closing Quote:',
+                  `got "${String.fromCharCode(nextChr)}"`,
+                  `at line ${this.info.lines}`,
+                  'instead of delimiter, record delimiter, trimable character',
+                  '(if activated) or comment',
+                ], this.options, this.__infoField())
+              );
+              if(err !== undefined) return err;
+            }else {
+              this.state.quoting = false;
+              this.state.wasQuoting = true;
+              this.state.field.prepend(quote);
+              pos += quote.length - 1;
+            }
+          }else {
+            if(this.state.field.length !== 0){
+              // In relax_quotes mode, treat opening quote preceded by chrs as regular
+              if(relax_quotes === false){
+                const err = this.__error(
+                  new CsvError('INVALID_OPENING_QUOTE', [
+                    'Invalid Opening Quote:',
+                    `a quote is found inside a field at line ${this.info.lines}`,
+                  ], this.options, this.__infoField(), {
+                    field: this.state.field,
+                  })
+                );
+                if(err !== undefined) return err;
+              }
+            }else {
+              this.state.quoting = true;
+              pos += quote.length - 1;
+              continue;
+            }
+          }
+        }
+        if(this.state.quoting === false){
+          const recordDelimiterLength = this.__isRecordDelimiter(chr, buf, pos);
+          if(recordDelimiterLength !== 0){
+            // Do not emit comments which take a full line
+            const skipCommentLine = this.state.commenting && (this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0);
+            if(skipCommentLine){
+              this.info.comment_lines++;
+              // Skip full comment line
+            }else {
+              // Activate records emition if above from_line
+              if(this.state.enabled === false && this.info.lines + (this.state.wasRowDelimiter === true ? 1: 0) >= from_line){
+                this.state.enabled = true;
+                this.__resetField();
+                this.__resetRecord();
+                pos += recordDelimiterLength - 1;
+                continue;
+              }
+              // Skip if line is empty and skip_empty_lines activated
+              if(skip_empty_lines === true && this.state.wasQuoting === false && this.state.record.length === 0 && this.state.field.length === 0){
+                this.info.empty_lines++;
+                pos += recordDelimiterLength - 1;
+                continue;
+              }
+              this.info.bytes = this.state.bufBytesStart + pos;
+              const errField = this.__onField();
+              if(errField !== undefined) return errField;
+              this.info.bytes = this.state.bufBytesStart + pos + recordDelimiterLength;
+              const errRecord = this.__onRecord();
+              if(errRecord !== undefined) return errRecord;
+              if(to !== -1 && this.info.records >= to){
+                this.state.stop = true;
+                this.push(null);
+                return;
+              }
+            }
+            this.state.commenting = false;
+            pos += recordDelimiterLength - 1;
+            continue;
+          }
+          if(this.state.commenting){
+            continue;
+          }
+          const commentCount = comment === null ? 0 : this.__compareBytes(comment, buf, pos, chr);
+          if(commentCount !== 0){
+            this.state.commenting = true;
+            continue;
+          }
+          const delimiterLength = this.__isDelimiter(buf, pos, chr);
+          if(delimiterLength !== 0){
+            this.info.bytes = this.state.bufBytesStart + pos;
+            const errField = this.__onField();
+            if(errField !== undefined) return errField;
+            pos += delimiterLength - 1;
+            continue;
+          }
+        }
+      }
+      if(this.state.commenting === false){
+        if(max_record_size !== 0 && this.state.record_length + this.state.field.length > max_record_size){
+          const err = this.__error(
+            new CsvError('CSV_MAX_RECORD_SIZE', [
+              'Max Record Size:',
+              'record exceed the maximum number of tolerated bytes',
+              `of ${max_record_size}`,
+              `at line ${this.info.lines}`,
+            ], this.options, this.__infoField())
+          );
+          if(err !== undefined) return err;
+        }
+      }
+      const lappend = ltrim === false || this.state.quoting === true || this.state.field.length !== 0 || !this.__isCharTrimable(chr);
+      // rtrim in non quoting is handle in __onField
+      const rappend = rtrim === false || this.state.wasQuoting === false;
+      if(lappend === true && rappend === true){
+        this.state.field.append(chr);
+      }else if(rtrim === true && !this.__isCharTrimable(chr)){
+        const err = this.__error(
+          new CsvError('CSV_NON_TRIMABLE_CHAR_AFTER_CLOSING_QUOTE', [
+            'Invalid Closing Quote:',
+            'found non trimable byte after quote',
+            `at line ${this.info.lines}`,
+          ], this.options, this.__infoField())
+        );
+        if(err !== undefined) return err;
+      }
+    }
+    if(end === true){
+      // Ensure we are not ending in a quoting state
+      if(this.state.quoting === true){
+        const err = this.__error(
+          new CsvError('CSV_QUOTE_NOT_CLOSED', [
+            'Quote Not Closed:',
+            `the parsing is finished with an opening quote at line ${this.info.lines}`,
+          ], this.options, this.__infoField())
+        );
+        if(err !== undefined) return err;
+      }else {
+        // Skip last line if it has no characters
+        if(this.state.wasQuoting === true || this.state.record.length !== 0 || this.state.field.length !== 0){
+          this.info.bytes = this.state.bufBytesStart + pos;
+          const errField = this.__onField();
+          if(errField !== undefined) return errField;
+          const errRecord = this.__onRecord();
+          if(errRecord !== undefined) return errRecord;
+        }else if(this.state.wasRowDelimiter === true){
+          this.info.empty_lines++;
+        }else if(this.state.commenting === true){
+          this.info.comment_lines++;
+        }
+      }
+    }else {
+      this.state.bufBytesStart += pos;
+      this.state.previousBuf = buf.slice(pos);
+    }
+    if(this.state.wasRowDelimiter === true){
+      this.info.lines++;
+      this.state.wasRowDelimiter = false;
+    }
+  }
+  __onRecord(){
+    const {columns, group_columns_by_name, encoding, info, from, relax_column_count, relax_column_count_less, relax_column_count_more, raw, skip_records_with_empty_values} = this.options;
+    const {enabled, record} = this.state;
+    if(enabled === false){
+      return this.__resetRecord();
+    }
+    // Convert the first line into column names
+    const recordLength = record.length;
+    if(columns === true){
+      if(skip_records_with_empty_values === true && isRecordEmpty(record)){
+        this.__resetRecord();
+        return;
+      }
+      return this.__firstLineToColumns(record);
+    }
+    if(columns === false && this.info.records === 0){
+      this.state.expectedRecordLength = recordLength;
+    }
+    if(recordLength !== this.state.expectedRecordLength){
+      const err = columns === false ?
+        new CsvError('CSV_RECORD_INCONSISTENT_FIELDS_LENGTH', [
+          'Invalid Record Length:',
+          `expect ${this.state.expectedRecordLength},`,
+          `got ${recordLength} on line ${this.info.lines}`,
+        ], this.options, this.__infoField(), {
+          record: record,
+        })
+        :
+        new CsvError('CSV_RECORD_INCONSISTENT_COLUMNS', [
+          'Invalid Record Length:',
+          `columns length is ${columns.length},`, // rename columns
+          `got ${recordLength} on line ${this.info.lines}`,
+        ], this.options, this.__infoField(), {
+          record: record,
+        });
+      if(relax_column_count === true ||
+        (relax_column_count_less === true && recordLength < this.state.expectedRecordLength) ||
+        (relax_column_count_more === true && recordLength > this.state.expectedRecordLength)){
+        this.info.invalid_field_length++;
+        this.state.error = err;
+      // Error is undefined with skip_records_with_error
+      }else {
+        const finalErr = this.__error(err);
+        if(finalErr) return finalErr;
+      }
+    }
+    if(skip_records_with_empty_values === true && isRecordEmpty(record)){
+      this.__resetRecord();
+      return;
+    }
+    if(this.state.recordHasError === true){
+      this.__resetRecord();
+      this.state.recordHasError = false;
+      return;
+    }
+    this.info.records++;
+    if(from === 1 || this.info.records >= from){
+      const {objname} = this.options;
+      // With columns, records are object
+      if(columns !== false){
+        const obj = {};
+        // Transform record array to an object
+        for(let i = 0, l = record.length; i < l; i++){
+          if(columns[i] === undefined || columns[i].disabled) continue;
+          // Turn duplicate columns into an array
+          if (group_columns_by_name === true && obj[columns[i].name] !== undefined) {
+            if (Array.isArray(obj[columns[i].name])) {
+              obj[columns[i].name] = obj[columns[i].name].concat(record[i]);
+            } else {
+              obj[columns[i].name] = [obj[columns[i].name], record[i]];
+            }
+          } else {
+            obj[columns[i].name] = record[i];
+          }
+        }
+        // Without objname (default)
+        if(raw === true || info === true){
+          const extRecord = Object.assign(
+            {record: obj},
+            (raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {}),
+            (info === true ? {info: this.__infoRecord()}: {})
+          );
+          const err = this.__push(
+            objname === undefined ? extRecord : [obj[objname], extRecord]
+          );
+          if(err){
+            return err;
+          }
+        }else {
+          const err = this.__push(
+            objname === undefined ? obj : [obj[objname], obj]
+          );
+          if(err){
+            return err;
+          }
+        }
+      // Without columns, records are array
+      }else {
+        if(raw === true || info === true){
+          const extRecord = Object.assign(
+            {record: record},
+            raw === true ? {raw: this.state.rawBuffer.toString(encoding)}: {},
+            info === true ? {info: this.__infoRecord()}: {}
+          );
+          const err = this.__push(
+            objname === undefined ? extRecord : [record[objname], extRecord]
+          );
+          if(err){
+            return err;
+          }
+        }else {
+          const err = this.__push(
+            objname === undefined ? record : [record[objname], record]
+          );
+          if(err){
+            return err;
+          }
+        }
+      }
+    }
+    this.__resetRecord();
+  }
+  __firstLineToColumns(record){
+    const {firstLineToHeaders} = this.state;
+    try{
+      const headers = firstLineToHeaders === undefined ? record : firstLineToHeaders.call(null, record);
+      if(!Array.isArray(headers)){
+        return this.__error(
+          new CsvError('CSV_INVALID_COLUMN_MAPPING', [
+            'Invalid Column Mapping:',
+            'expect an array from column function,',
+            `got ${JSON.stringify(headers)}`
+          ], this.options, this.__infoField(), {
+            headers: headers,
+          })
+        );
+      }
+      const normalizedHeaders = normalizeColumnsArray(headers);
+      this.state.expectedRecordLength = normalizedHeaders.length;
+      this.options.columns = normalizedHeaders;
+      this.__resetRecord();
+      return;
+    }catch(err){
+      return err;
+    }
+  }
+  __resetRecord(){
+    if(this.options.raw === true){
+      this.state.rawBuffer.reset();
+    }
+    this.state.error = undefined;
+    this.state.record = [];
+    this.state.record_length = 0;
+  }
+  __onField(){
+    const {cast, encoding, rtrim, max_record_size} = this.options;
+    const {enabled, wasQuoting} = this.state;
+    // Short circuit for the from_line options
+    if(enabled === false){
+      return this.__resetField();
+    }
+    let field = this.state.field.toString(encoding);
+    if(rtrim === true && wasQuoting === false){
+      field = field.trimRight();
+    }
+    if(cast === true){
+      const [err, f] = this.__cast(field);
+      if(err !== undefined) return err;
+      field = f;
+    }
+    this.state.record.push(field);
+    // Increment record length if record size must not exceed a limit
+    if(max_record_size !== 0 && typeof field === 'string'){
+      this.state.record_length += field.length;
+    }
+    this.__resetField();
+  }
+  __resetField(){
+    this.state.field.reset();
+    this.state.wasQuoting = false;
+  }
+  __push(record){
+    const {on_record} = this.options;
+    if(on_record !== undefined){
+      const info = this.__infoRecord();
+      try{
+        record = on_record.call(null, record, info);
+      }catch(err){
+        return err;
+      }
+      if(record === undefined || record === null){ return; }
+    }
+    this.push(record);
+  }
+  // Return a tuple with the error and the casted value
+  __cast(field){
+    const {columns, relax_column_count} = this.options;
+    const isColumns = Array.isArray(columns);
+    // Dont loose time calling cast
+    // because the final record is an object
+    // and this field can't be associated to a key present in columns
+    if(isColumns === true && relax_column_count && this.options.columns.length <= this.state.record.length){
+      return [undefined, undefined];
+    }
+    if(this.state.castField !== null){
+      try{
+        const info = this.__infoField();
+        return [undefined, this.state.castField.call(null, field, info)];
+      }catch(err){
+        return [err];
+      }
+    }
+    if(this.__isFloat(field)){
+      return [undefined, parseFloat(field)];
+    }else if(this.options.cast_date !== false){
+      const info = this.__infoField();
+      return [undefined, this.options.cast_date.call(null, field, info)];
+    }
+    return [undefined, field];
+  }
+  // Helper to test if a character is a space or a line delimiter
+  __isCharTrimable(chr){
+    return chr === space || chr === tab || chr === cr || chr === nl || chr === np;
+  }
+  // Keep it in case we implement the `cast_int` option
+  // __isInt(value){
+  //   // return Number.isInteger(parseInt(value))
+  //   // return !isNaN( parseInt( obj ) );
+  //   return /^(\-|\+)?[1-9][0-9]*$/.test(value)
+  // }
+  __isFloat(value){
+    return (value - parseFloat(value) + 1) >= 0; // Borrowed from jquery
+  }
+  __compareBytes(sourceBuf, targetBuf, targetPos, firstByte){
+    if(sourceBuf[0] !== firstByte) return 0;
+    const sourceLength = sourceBuf.length;
+    for(let i = 1; i < sourceLength; i++){
+      if(sourceBuf[i] !== targetBuf[targetPos+i]) return 0;
+    }
+    return sourceLength;
+  }
+  __needMoreData(i, bufLen, end){
+    if(end) return false;
+    const {quote} = this.options;
+    const {quoting, needMoreDataSize, recordDelimiterMaxLength} = this.state;
+    const numOfCharLeft = bufLen - i - 1;
+    const requiredLength = Math.max(
+      needMoreDataSize,
+      // Skip if the remaining buffer smaller than record delimiter
+      recordDelimiterMaxLength,
+      // Skip if the remaining buffer can be record delimiter following the closing quote
+      // 1 is for quote.length
+      quoting ? (quote.length + recordDelimiterMaxLength) : 0,
+    );
+    return numOfCharLeft < requiredLength;
+  }
+  __isDelimiter(buf, pos, chr){
+    const {delimiter, ignore_last_delimiters} = this.options;
+    if(ignore_last_delimiters === true && this.state.record.length === this.options.columns.length - 1){
+      return 0;
+    }else if(ignore_last_delimiters !== false && typeof ignore_last_delimiters === 'number' && this.state.record.length === ignore_last_delimiters - 1){
+      return 0;
+    }
+    loop1: for(let i = 0; i < delimiter.length; i++){
+      const del = delimiter[i];
+      if(del[0] === chr){
+        for(let j = 1; j < del.length; j++){
+          if(del[j] !== buf[pos+j]) continue loop1;
+        }
+        return del.length;
+      }
+    }
+    return 0;
+  }
+  __isRecordDelimiter(chr, buf, pos){
+    const {record_delimiter} = this.options;
+    const recordDelimiterLength = record_delimiter.length;
+    loop1: for(let i = 0; i < recordDelimiterLength; i++){
+      const rd = record_delimiter[i];
+      const rdLength = rd.length;
+      if(rd[0] !== chr){
+        continue;
+      }
+      for(let j = 1; j < rdLength; j++){
+        if(rd[j] !== buf[pos+j]){
+          continue loop1;
+        }
+      }
+      return rd.length;
+    }
+    return 0;
+  }
+  __isEscape(buf, pos, chr){
+    const {escape} = this.options;
+    if(escape === null) return false;
+    const l = escape.length;
+    if(escape[0] === chr){
+      for(let i = 0; i < l; i++){
+        if(escape[i] !== buf[pos+i]){
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+  __isQuote(buf, pos){
+    const {quote} = this.options;
+    if(quote === null) return false;
+    const l = quote.length;
+    for(let i = 0; i < l; i++){
+      if(quote[i] !== buf[pos+i]){
+        return false;
+      }
+    }
+    return true;
+  }
+  __autoDiscoverRecordDelimiter(buf, pos){
+    const {encoding} = this.options;
+    const chr = buf[pos];
+    if(chr === cr){
+      if(buf[pos+1] === nl){
+        this.options.record_delimiter.push(Buffer.from('\r\n', encoding));
+        this.state.recordDelimiterMaxLength = 2;
+        return 2;
+      }else {
+        this.options.record_delimiter.push(Buffer.from('\r', encoding));
+        this.state.recordDelimiterMaxLength = 1;
+        return 1;
+      }
+    }else if(chr === nl){
+      this.options.record_delimiter.push(Buffer.from('\n', encoding));
+      this.state.recordDelimiterMaxLength = 1;
+      return 1;
+    }
+    return 0;
+  }
+  __error(msg){
+    const {encoding, raw, skip_records_with_error} = this.options;
+    const err = typeof msg === 'string' ? new Error(msg) : msg;
+    if(skip_records_with_error){
+      this.state.recordHasError = true;
+      this.emit('skip', err, raw ? this.state.rawBuffer.toString(encoding) : undefined);
+      return undefined;
+    }else {
+      return err;
+    }
+  }
+  __infoDataSet(){
+    return {
+      ...this.info,
+      columns: this.options.columns
+    };
+  }
+  __infoRecord(){
+    const {columns, raw, encoding} = this.options;
+    return {
+      ...this.__infoDataSet(),
+      error: this.state.error,
+      header: columns === true,
+      index: this.state.record.length,
+      raw: raw ? this.state.rawBuffer.toString(encoding) : undefined
+    };
+  }
+  __infoField(){
+    const {columns} = this.options;
+    const isColumns = Array.isArray(columns);
+    return {
+      ...this.__infoRecord(),
+      column: isColumns === true ?
+        (columns.length > this.state.record.length ?
+          columns[this.state.record.length].name :
+          null
+        ) :
+        this.state.record.length,
+      quoting: this.state.wasQuoting,
+    };
+  }
+}
+
+const parse = function(data, options={}){
+  if(typeof data === 'string'){
+    data = Buffer.from(data);
+  }
+  const records = options && options.objname ? {} : [];
+  const parser = new Parser(options);
+  parser.push = function(record){
+    if(record === null){
+      return;
+    }
+    if(options.objname === undefined)
+      records.push(record);
+    else {
+      records[record[0]] = record[1];
+    }
+  };
+  const err1 = parser.__parse(data, false);
+  if(err1 !== undefined) throw err1;
+  const err2 = parser.__parse(undefined, true);
+  if(err2 !== undefined) throw err2;
+  return records;
+};
+
+exports.CsvError = CsvError;
+exports.parse = parse;
+
+
+/***/ }),
+
 /***/ 2357:
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("assert");;
+module.exports = require("assert");
 
 /***/ }),
 
@@ -11357,7 +11991,7 @@ module.exports = require("assert");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("child_process");;
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -11365,7 +11999,7 @@ module.exports = require("child_process");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("crypto");;
+module.exports = require("crypto");
 
 /***/ }),
 
@@ -11373,7 +12007,7 @@ module.exports = require("crypto");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("events");;
+module.exports = require("events");
 
 /***/ }),
 
@@ -11381,7 +12015,7 @@ module.exports = require("events");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("fs");;
+module.exports = require("fs");
 
 /***/ }),
 
@@ -11389,7 +12023,7 @@ module.exports = require("fs");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("http");;
+module.exports = require("http");
 
 /***/ }),
 
@@ -11397,7 +12031,7 @@ module.exports = require("http");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("https");;
+module.exports = require("https");
 
 /***/ }),
 
@@ -11405,7 +12039,7 @@ module.exports = require("https");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("net");;
+module.exports = require("net");
 
 /***/ }),
 
@@ -11413,7 +12047,7 @@ module.exports = require("net");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("os");;
+module.exports = require("os");
 
 /***/ }),
 
@@ -11421,7 +12055,7 @@ module.exports = require("os");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("path");;
+module.exports = require("path");
 
 /***/ }),
 
@@ -11429,7 +12063,23 @@ module.exports = require("path");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("stream");;
+module.exports = require("stream");
+
+/***/ }),
+
+/***/ 4304:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("string_decoder");
+
+/***/ }),
+
+/***/ 8213:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("timers");
 
 /***/ }),
 
@@ -11437,7 +12087,7 @@ module.exports = require("stream");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("tls");;
+module.exports = require("tls");
 
 /***/ }),
 
@@ -11445,7 +12095,7 @@ module.exports = require("tls");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("url");;
+module.exports = require("url");
 
 /***/ }),
 
@@ -11453,7 +12103,7 @@ module.exports = require("url");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("util");;
+module.exports = require("util");
 
 /***/ }),
 
@@ -11461,7 +12111,7 @@ module.exports = require("util");;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("zlib");;
+module.exports = require("zlib");
 
 /***/ })
 
@@ -11473,8 +12123,9 @@ module.exports = require("zlib");;
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
@@ -11499,11 +12150,16 @@ module.exports = require("zlib");;
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
-/******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
+/******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
+/******/ 	
+/************************************************************************/
+/******/ 	
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(3109);
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(3109);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map

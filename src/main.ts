@@ -7,6 +7,7 @@ import * as sonarScanner from './sonar-scanner';
 import * as maven from './maven';
 import * as state from './state';
 import * as args from './args';
+import {removeCommentsOlderThan} from './pr';
 
 async function run(): Promise<void> {
   try {
@@ -15,6 +16,7 @@ async function run(): Promise<void> {
       return;
     }
     state.setIsPost();
+    state.setActionStartedAt(new Date());
 
     const inputs = await getInputs();
     if (!inputs.host) {
@@ -45,11 +47,14 @@ async function run(): Promise<void> {
         throw new Error(`unsupported scanner:${inputs.scanner}`);
     }
   } catch (error) {
-    setFailed(error.message);
+    setFailed((error as Error).message);
   }
 }
 
 async function post(): Promise<void> {
+  if (state.actionStartedAt) {
+    await removeCommentsOlderThan(state.actionStartedAt);
+  }
   if (state.proxyContainer) {
     await proxy.stop(state.proxyContainer);
   }
