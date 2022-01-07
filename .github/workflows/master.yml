@@ -30,10 +30,6 @@ jobs:
       - uses: tradeshift/actions-semantic-release@v1
         id: semantic-release
         with:
-          branches: |
-            [
-              'master'
-            ]
           check_name: Semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
