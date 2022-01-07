@@ -100,7 +100,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: tradeshift/actions-setup-java@v1.4.3
+      - uses: tradeshift/actions-setup-java@v1
           with:
             java-version: 10
             maven-version: "3.6.3"
