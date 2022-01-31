@@ -200,7 +200,6 @@ const sonarScanner = __importStar(__nccwpck_require__(6789));
 const maven = __importStar(__nccwpck_require__(1613));
 const state = __importStar(__nccwpck_require__(9249));
 const args = __importStar(__nccwpck_require__(4133));
-const pr_1 = __nccwpck_require__(515);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -209,7 +208,6 @@ function run() {
                 return;
             }
             state.setIsPost();
-            state.setActionStartedAt(new Date());
             const inputs = yield (0, inputs_1.getInputs)();
             if (!inputs.host) {
                 throw new Error(`host is required`);
@@ -241,9 +239,6 @@ function run() {
 }
 function post() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (state.actionStartedAt) {
-            yield (0, pr_1.removeCommentsOlderThan)(state.actionStartedAt);
-        }
         if (state.proxyContainer) {
             yield proxy.stop(state.proxyContainer);
         }
@@ -283,62 +278,6 @@ function run(args) {
     });
 }
 exports.run = run;
-
-
-/***/ }),
-
-/***/ 515:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.removeCommentsOlderThan = void 0;
-const core_1 = __nccwpck_require__(2186);
-const github_1 = __nccwpck_require__(5438);
-function removeCommentsOlderThan(deletionCutoff) {
-    var _a, _b, _c;
-    return __awaiter(this, void 0, void 0, function* () {
-        const token = (0, core_1.getInput)('github-token');
-        // guard against running on master / without token
-        if (!((_a = github_1.context.issue) === null || _a === void 0 ? void 0 : _a.number)) {
-            (0, core_1.info)(`${(_b = github_1.context.issue) === null || _b === void 0 ? void 0 : _b.number}`);
-            (0, core_1.info)(`Skipping comment cleanup on non-pr build`);
-            return;
-        }
-        if (!token) {
-            (0, core_1.info)(`Skipping comment cleanup, no github-token provided`);
-            return;
-        }
-        const github = (0, github_1.getOctokit)(token);
-        const comments = yield github.paginate(github.rest.issues.listComments, {
-            issue_number: github_1.context.issue.number,
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo
-        });
-        for (const comment of comments) {
-            if (((_c = comment.user) === null || _c === void 0 ? void 0 : _c.login) === 'ts-sonarqube[bot]' &&
-                new Date(comment.created_at) < deletionCutoff) {
-                (0, core_1.info)(`Deleting comment ${comment.id} by ${comment.user.login}`);
-                yield github.rest.issues.deleteComment({
-                    owner: github_1.context.repo.owner,
-                    repo: github_1.context.repo.repo,
-                    comment_id: comment.id
-                });
-            }
-        }
-    });
-}
-exports.removeCommentsOlderThan = removeCommentsOlderThan;
 
 
 /***/ }),
@@ -544,7 +483,7 @@ function download(version) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setActionStartedAt = exports.setProxyContainer = exports.setIsPost = exports.actionStartedAt = exports.proxyContainer = exports.isPost = void 0;
+exports.setProxyContainer = exports.setIsPost = exports.actionStartedAt = exports.proxyContainer = exports.isPost = void 0;
 const core_1 = __nccwpck_require__(2186);
 exports.isPost = (0, core_1.getState)('isPost') === 'true';
 exports.proxyContainer = (0, core_1.getState)('proxyContainer');
@@ -557,10 +496,6 @@ function setProxyContainer(id) {
     (0, core_1.saveState)('proxyContainer', id);
 }
 exports.setProxyContainer = setProxyContainer;
-function setActionStartedAt(date) {
-    (0, core_1.saveState)('actionStartedAt', date.toJSON());
-}
-exports.setActionStartedAt = setActionStartedAt;
 
 
 /***/ }),
