@@ -11,3 +11,7 @@ export function setIsPost(): void {
 export function setProxyContainer(id: string): void {
   saveState('proxyContainer', id);
 }
+
+export function setActionStartedAt(date: Date): void {
+  saveState('actionStartedAt', date.toJSON());
+}
