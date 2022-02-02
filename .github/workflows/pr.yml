@@ -23,3 +23,16 @@ jobs:
           npm run test
       - name: Check for changes (fail if we forgot to update lib output)
         run: git diff --quiet dist
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Sonarqube
+        uses: ./
+        with:
+          ca-cert: ${{ secrets.MTLS_CACERT }}
+          client-cert: ${{ secrets.MTLS_CERT }}
+          client-key: ${{ secrets.MTLS_KEY }}
+          token: ${{ secrets.SONAR_TOKEN }}

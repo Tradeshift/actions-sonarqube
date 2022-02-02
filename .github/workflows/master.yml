@@ -22,9 +22,20 @@ jobs:
           npm run lint
           npm run package
           npm run test
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Sonarqube
+        uses: ./
+        with:
+          ca-cert: ${{ secrets.MTLS_CACERT }}
+          client-cert: ${{ secrets.MTLS_CERT }}
+          client-key: ${{ secrets.MTLS_KEY }}
+          token: ${{ secrets.SONAR_TOKEN }}
   release:
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build, self-test]
     steps:
       - uses: actions/checkout@v2
         with:
