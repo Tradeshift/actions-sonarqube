@@ -102,12 +102,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputList = exports.getInputs = void 0;
-const sync_1 = __importDefault(__nccwpck_require__(4393));
+const csv_parse_1 = __nccwpck_require__(6107);
 const core = __importStar(__nccwpck_require__(2186));
 function getInputs() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -133,11 +130,18 @@ function getInputList(name, ignoreComma = false) {
         if (items === '') {
             return res;
         }
-        const parsed = yield sync_1.default.parse(items, {
+        const parsed = yield new Promise((resolve, reject) => (0, csv_parse_1.parse)(items, {
             columns: false,
             relaxColumnCount: true,
             skipEmptyLines: true
-        });
+        }, (err, records) => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(records);
+            }
+        }));
         for (const output of parsed) {
             if (output.length === 1) {
                 res.push(output[0]);
@@ -12960,7 +12964,7 @@ module.exports = require("zlib");
 
 /***/ }),
 
-/***/ 4393:
+/***/ 6107:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -14239,30 +14243,61 @@ class Parser extends stream.Transform {
   }
 }
 
-const parse = function(data, options={}){
-  if(typeof data === 'string'){
-    data = Buffer.from(data);
+const parse = function(){
+  let data, options, callback;
+  for(const i in arguments){
+    const argument = arguments[i];
+    const type = typeof argument;
+    if(data === undefined && (typeof argument === 'string' || Buffer.isBuffer(argument))){
+      data = argument;
+    }else if(options === undefined && isObject(argument)){
+      options = argument;
+    }else if(callback === undefined && type === 'function'){
+      callback = argument;
+    }else {
+      throw new CsvError('CSV_INVALID_ARGUMENT', [
+        'Invalid argument:',
+        `got ${JSON.stringify(argument)} at index ${i}`
+      ], options || {});
+    }
   }
-  const records = options && options.objname ? {} : [];
   const parser = new Parser(options);
-  parser.push = function(record){
-    if(record === null){
-      return;
+  if(callback){
+    const records = options === undefined || options.objname === undefined ? [] : {};
+    parser.on('readable', function(){
+      let record;
+      while((record = this.read()) !== null){
+        if(options === undefined || options.objname === undefined){
+          records.push(record);
+        }else {
+          records[record[0]] = record[1];
+        }
+      }
+    });
+    parser.on('error', function(err){
+      callback(err, undefined, parser.__infoDataSet());
+    });
+    parser.on('end', function(){
+      callback(undefined, records, parser.__infoDataSet());
+    });
+  }
+  if(data !== undefined){
+    const writer = function(){
+      parser.write(data);
+      parser.end();
+    };
+    // Support Deno, Rollup doesnt provide a shim for setImmediate
+    if(typeof setImmediate === 'function'){
+      setImmediate(writer);
+    }else {
+      setTimeout(writer, 0);
     }
-    if(options.objname === undefined)
-      records.push(record);
-    else {
-      records[record[0]] = record[1];
-    }
-  };
-  const err1 = parser.__parse(data, false);
-  if(err1 !== undefined) throw err1;
-  const err2 = parser.__parse(undefined, true);
-  if(err2 !== undefined) throw err2;
-  return records;
+  }
+  return parser;
 };
 
 exports.CsvError = CsvError;
+exports.Parser = Parser;
 exports.parse = parse;
 
 

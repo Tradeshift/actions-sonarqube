@@ -33,6 +33,8 @@ jobs:
           client-cert: ${{ secrets.MTLS_CERT }}
           client-key: ${{ secrets.MTLS_KEY }}
           token: ${{ secrets.SONAR_TOKEN }}
+          args: |
+            -Dsonar.exclusions=dist/**/*.js
   release:
     runs-on: ubuntu-latest
     needs: [build, self-test]

@@ -16,19 +16,15 @@ inputs:
     required: false
   host:
     description: Sonarqube host
-    required: true
     default: https://sonar.ts.sv
   scanner:
     decsription: Sonarqube scanner
-    required: true
     default: sonar-scanner
   sonar-proxy-image:
     description: Sonarqube proxy image
-    required: true
     default: eu.gcr.io/tradeshift-public/sonarqube-proxy:master
   sonar-scanner-version:
     description: version of the SonarScanner cli to use/install
-    required: true
     default: 4.6.0.2311
   token:
     description: Sonarqube access token
