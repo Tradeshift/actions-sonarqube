@@ -1,5 +1,5 @@
 import {debug, endGroup, info, startGroup, warning} from '@actions/core';
-import {exec} from '@tradeshift/actions-exec';
+import {getExecOutput} from '@actions/exec';
 import {Inputs} from './inputs';
 import {setProxyContainer} from './state';
 
@@ -31,8 +31,8 @@ export async function start(inputs: Inputs): Promise<string> {
     `SONAR_HOST=${inputs.host}`,
     inputs.sonarProxyImage
   ];
-  const res = await exec('docker', args, true);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('docker', args, {silent: true});
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error(`could not start sonar proxy container: ${res.stderr}`);
   }
 
@@ -51,8 +51,8 @@ export async function start(inputs: Inputs): Promise<string> {
 
 export async function stop(containerID: string): Promise<void> {
   info('Stopping sonar proxy');
-  const res = await exec('docker', ['stop', containerID], false);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('docker', ['stop', containerID]);
+  if (res.stderr !== '' && res.exitCode) {
     warning(`could not stop sonar proxy: ${res.stderr}`);
   }
   return;
@@ -69,8 +69,10 @@ interface inspectObj {
 }
 
 async function getIP(containerID: string): Promise<string> {
-  const res = await exec('docker', ['inspect', containerID], true);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('docker', ['inspect', containerID], {
+    silent: true
+  });
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error('could not inspect docker container');
   }
 

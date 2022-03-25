@@ -1,8 +1,8 @@
-import {exec} from '@tradeshift/actions-exec';
+import {getExecOutput} from '@actions/exec';
 
 export async function headSHA(): Promise<string> {
-  const res = await exec('git', ['rev-parse', 'HEAD'], true);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('git', ['rev-parse', 'HEAD'], {silent: true});
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error(`could not get git head sha: ${res.stderr}`);
   }
 
