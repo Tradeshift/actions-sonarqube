@@ -54,11 +54,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.headSHA = void 0;
-const actions_exec_1 = __nccwpck_require__(291);
+const exec_1 = __nccwpck_require__(1514);
 function headSHA() {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield (0, actions_exec_1.exec)('git', ['rev-parse', 'HEAD'], true);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('git', ['rev-parse', 'HEAD'], { silent: true });
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error(`could not get git head sha: ${res.stderr}`);
         }
         return res.stdout.trim();
@@ -270,12 +270,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core_1 = __nccwpck_require__(2186);
-const actions_exec_1 = __nccwpck_require__(291);
+const exec_1 = __nccwpck_require__(1514);
 function run(args) {
     return __awaiter(this, void 0, void 0, function* () {
         (0, core_1.startGroup)('Running Maven SonarScanner');
-        const res = yield (0, actions_exec_1.exec)('mvn', ['-B', 'sonar:sonar'].concat(args), false);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('mvn', ['-B', 'sonar:sonar'].concat(args));
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error(`failed maven execution: ${res.stderr}`);
         }
         (0, core_1.endGroup)();
@@ -303,7 +303,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.stop = exports.start = void 0;
 const core_1 = __nccwpck_require__(2186);
-const actions_exec_1 = __nccwpck_require__(291);
+const exec_1 = __nccwpck_require__(1514);
 const state_1 = __nccwpck_require__(9249);
 function start(inputs) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -334,8 +334,8 @@ function start(inputs) {
             `SONAR_HOST=${inputs.host}`,
             inputs.sonarProxyImage
         ];
-        const res = yield (0, actions_exec_1.exec)('docker', args, true);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('docker', args, { silent: true });
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error(`could not start sonar proxy container: ${res.stderr}`);
         }
         const containerID = res.stdout.trim();
@@ -353,8 +353,8 @@ exports.start = start;
 function stop(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
         (0, core_1.info)('Stopping sonar proxy');
-        const res = yield (0, actions_exec_1.exec)('docker', ['stop', containerID], false);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('docker', ['stop', containerID]);
+        if (res.stderr !== '' && res.exitCode) {
             (0, core_1.warning)(`could not stop sonar proxy: ${res.stderr}`);
         }
         return;
@@ -363,8 +363,10 @@ function stop(containerID) {
 exports.stop = stop;
 function getIP(containerID) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield (0, actions_exec_1.exec)('docker', ['inspect', containerID], true);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('docker', ['inspect', containerID], {
+            silent: true
+        });
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error('could not inspect docker container');
         }
         (0, core_1.debug)(res.stdout.trim());
@@ -415,17 +417,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core_1 = __nccwpck_require__(2186);
+const exec_1 = __nccwpck_require__(1514);
 const io_1 = __nccwpck_require__(7436);
 const tc = __importStar(__nccwpck_require__(7784));
-const actions_exec_1 = __nccwpck_require__(291);
 function run(version, args) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!(yield isAvailable(version))) {
             yield install(version);
         }
         (0, core_1.startGroup)('Running SonarScanner');
-        const res = yield (0, actions_exec_1.exec)('sonar-scanner', args, false);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)('sonar-scanner', args);
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error(`failed sonar scanner execution: ${res.stderr}`);
         }
         (0, core_1.endGroup)();
@@ -442,8 +444,10 @@ function isAvailable(version) {
             return false;
         }
         (0, core_1.debug)(`found sonar-scanner on path: ${sonarScannerPath}`);
-        const res = yield (0, actions_exec_1.exec)(sonarScannerPath, ['--version'], true);
-        if (res.stderr !== '' && !res.success) {
+        const res = yield (0, exec_1.getExecOutput)(sonarScannerPath, ['--version'], {
+            silent: true
+        });
+        if (res.stderr !== '' && res.exitCode) {
             throw new Error(`could not get sonar version: ${res.stderr}`);
         }
         const matches = res.stdout.match(/^INFO: SonarScanner (.*)$/m);
@@ -8249,53 +8253,6 @@ const request = withDefaults(endpoint.endpoint, {
 exports.request = request;
 //# sourceMappingURL=index.js.map
 
-
-/***/ }),
-
-/***/ 291:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exec = void 0;
-const exec_1 = __nccwpck_require__(1514);
-function exec(command, args = [], silent, stdin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let stdout = '';
-        let stderr = '';
-        const options = {
-            silent,
-            ignoreReturnCode: true,
-            input: Buffer.from(stdin || '')
-        };
-        options.listeners = {
-            stdout: (data) => {
-                stdout += data.toString();
-            },
-            stderr: (data) => {
-                stderr += data.toString();
-            }
-        };
-        const returnCode = yield exec_1.exec(command, args, options);
-        return {
-            success: returnCode === 0,
-            stdout: stdout.trim(),
-            stderr: stderr.trim()
-        };
-    });
-}
-exports.exec = exec;
-//# sourceMappingURL=exec.js.map
 
 /***/ }),
 

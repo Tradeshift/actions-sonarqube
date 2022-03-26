@@ -1,7 +1,7 @@
 import {addPath, debug, endGroup, info, startGroup} from '@actions/core';
+import {getExecOutput} from '@actions/exec';
 import {which} from '@actions/io';
 import * as tc from '@actions/tool-cache';
-import {exec} from '@tradeshift/actions-exec';
 
 export async function run(version: string, args: string[]): Promise<void> {
   if (!(await isAvailable(version))) {
@@ -9,8 +9,8 @@ export async function run(version: string, args: string[]): Promise<void> {
   }
 
   startGroup('Running SonarScanner');
-  const res = await exec('sonar-scanner', args, false);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('sonar-scanner', args);
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error(`failed sonar scanner execution: ${res.stderr}`);
   }
   endGroup();
@@ -25,8 +25,10 @@ async function isAvailable(version: string): Promise<boolean> {
   }
   debug(`found sonar-scanner on path: ${sonarScannerPath}`);
 
-  const res = await exec(sonarScannerPath, ['--version'], true);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput(sonarScannerPath, ['--version'], {
+    silent: true
+  });
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error(`could not get sonar version: ${res.stderr}`);
   }
 

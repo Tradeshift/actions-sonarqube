@@ -1,10 +1,10 @@
 import {endGroup, startGroup} from '@actions/core';
-import {exec} from '@tradeshift/actions-exec';
+import {getExecOutput} from '@actions/exec';
 
 export async function run(args: string[]): Promise<void> {
   startGroup('Running Maven SonarScanner');
-  const res = await exec('mvn', ['-B', 'sonar:sonar'].concat(args), false);
-  if (res.stderr !== '' && !res.success) {
+  const res = await getExecOutput('mvn', ['-B', 'sonar:sonar'].concat(args));
+  if (res.stderr !== '' && res.exitCode) {
     throw new Error(`failed maven execution: ${res.stderr}`);
   }
   endGroup();
