@@ -1,5 +1,5 @@
 import {endGroup, info, startGroup} from '@actions/core';
-import {PullRequestEvent} from '@octokit/webhooks-definitions/schema';
+import {PullRequestEvent} from '@octokit/webhooks-definitions/schema'; // eslint-disable-line import/no-unresolved
 import {Context} from '@actions/github/lib/context';
 
 import {Inputs} from './inputs';
