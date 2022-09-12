@@ -9,7 +9,7 @@ inputs:
     description: MTLS ca cert
     required: false
   client-cert:
-    description: MTLS client cert
+    description: MTLS client cert, configuring this will enable the proxy
     required: false
   client-key:
     description: MTLS client key

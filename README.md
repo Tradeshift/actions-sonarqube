@@ -79,9 +79,11 @@ jobs:
           host: https://mysonar.com
 ```
 
-## script-proxy-opts
+## Using maven
 
-Usage:
+The java setup below enables the MTLS in the JVM, so no need to use the proxy in this case.
+
+The proxy is not enabled when `client-cert` is not set.
 
 ```yaml
 name: Sonarqube scanner
@@ -94,39 +96,39 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/cache@v1
-        id: cache
+      - uses: actions/cache@v3
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ github.event.repository.name }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
+            ${{ runner.os }}-maven-${{ github.event.repository.name }}-
             ${{ runner.os }}-maven-
 
-      - name: Set up JDK 10
-        uses: actions/setup-java@v1
+      - id: setupJava
+        uses: actions/setup-java@v3
         with:
-          java-version: 10
+          java-version: 11
+          distribution: 'zulu'
+          
+      - name: Set up Maven
+        uses: tradeshift/actions-setup-maven@v4.4
+        with:
+          maven-version: 3.8.6
 
-      - name: Setup Maven certs
-        uses: tradeshift/actions-maven@master
+      - name: Configure maven
+        uses: tradeshift/actions-setup-java-mtls@v1
         with:
+          java-version: "${{ steps.setupJava.outputs.version }}"
           maven-settings: ${{ secrets.MAVEN_SETTINGS }}
-          maven-security-settings: ${{ secrets.MAVEN_SECURITY }}
-          maven-p12-keystore: ${{ secrets.MAVEN_P12 }}
-          maven-p12-keystore-password: ${{ secrets.MAVEN_P12_PASSWORD }}
-          company-rootca: ${{ secrets.MTLS_CACERT }}
+          maven-security: ${{ secrets.MAVEN_SECURITY }}
+          maven-p12: ${{ secrets.MAVEN_P12 }}
+          maven-p12-password: ${{ secrets.MAVEN_P12_PASSWORD }}
+          mtls-cacert: ${{ secrets.MTLS_CACERT }}
 
-      - name: SonarQube options
-        id: sonar-opts
-        uses: tradeshift/actions-sonarqube/script-proxy-opts@master
+      - name: SonarQube Scan
+        uses: tradeshift/actions-sonarqube@v2
         with:
-          ca-cert: ${{ secrets.MTLS_CACERT }}
-          cert: ${{ secrets.MTLS_CERT }}
-          key: ${{ secrets.MTLS_KEY }}
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
-          sonar-host: "https://sonar.host"
-
-      - name SonarQube maven scan
-        run: |
-          mvn -B sonar:sonar ${{ steps.sonar-opts.output.opts }}
+          scanner: maven
+          token: ${{ secrets.SONAR_TOKEN }}
+          host: 'https://sonar.ts.sv'
 ```
