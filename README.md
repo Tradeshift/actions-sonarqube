@@ -19,7 +19,7 @@ on: [pull_request]
 
 jobs:
   sonarqube:
-    runs-on: self-hosted
+    runs-on: [self-hosted,ts-large-x64-docker-large]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -43,7 +43,7 @@ on:
 
 jobs:
   sonarqube:
-    runs-on: self-hosted
+    runs-on: [self-hosted,ts-large-x64-docker-large]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -65,7 +65,7 @@ on:
 
 jobs:
   sonarqube:
-    runs-on: self-hosted
+    runs-on: [self-hosted,ts-large-x64-docker-large]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -92,7 +92,7 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: [self-hosted,ts-large-x64-docker-large]
     steps:
       - uses: actions/checkout@v2
 
