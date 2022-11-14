@@ -13,5 +13,13 @@ describe('inputs', () => {
         input.split('\n').map(s => s.trim())
       );
     });
+    it('can parse input lists with quotes', async () => {
+      const input = `-Dsonar.sources=grails-app,plugins,scripts,src,test,web-app
+      -Dsonar.sourceEncoding=UTF-8`;
+      jest.spyOn(core, 'getInput').mockReturnValue(input);
+      expect(await getInputList('my-input')).toStrictEqual(
+        input.split('\n').map(s => s.trim())
+      );
+    });
   });
 });
