@@ -127,7 +127,7 @@ function getInputs() {
     });
 }
 exports.getInputs = getInputs;
-function getInputList(name, ignoreComma = false) {
+function getInputList(name, ignoreComma = true) {
     return __awaiter(this, void 0, void 0, function* () {
         const res = [];
         const items = core.getInput(name);
