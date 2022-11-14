@@ -30,7 +30,7 @@ export async function getInputs(): Promise<Inputs> {
 
 export async function getInputList(
   name: string,
-  ignoreComma = false
+  ignoreComma = true
 ): Promise<string[]> {
   const res: string[] = [];
 
