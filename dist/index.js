@@ -14035,8 +14035,6 @@ module.exports = require("zlib");
 "use strict";
 
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
 var stream = __nccwpck_require__(2781);
 
 const is_object = function(obj){
