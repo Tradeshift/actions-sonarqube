@@ -51,6 +51,7 @@ async function run(): Promise<void> {
 
 async function post(): Promise<void> {
   if (state.proxyContainer) {
+    await proxy.log(state.proxyContainer);
     await proxy.stop(state.proxyContainer);
   }
 }
