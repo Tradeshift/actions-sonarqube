@@ -49,6 +49,13 @@ export async function start(inputs: Inputs): Promise<string> {
   return host;
 }
 
+export async function log(containerID: string): Promise<void> {
+  info('Getting sonar proxy logs');
+  const res = await getExecOutput('docker', ['logs', containerID]);
+  info(`sonar proxy log: ${res.stdout}`);
+  return;
+}
+
 export async function stop(containerID: string): Promise<void> {
   info('Stopping sonar proxy');
   const res = await getExecOutput('docker', ['stop', containerID]);
