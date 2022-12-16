@@ -50,6 +50,10 @@ export async function start(inputs: Inputs): Promise<string> {
 }
 
 export async function stop(containerID: string): Promise<void> {
+  info('Getting sonar proxy logs');
+  const log = await getExecOutput('docker', ['logs', containerID]);
+  info(`sonar proxy log: ${log.stdout}`);
+
   info('Stopping sonar proxy');
   const res = await getExecOutput('docker', ['stop', containerID]);
   if (res.stderr !== '' && res.exitCode) {
