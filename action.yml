@@ -16,7 +16,7 @@ inputs:
     required: false
   host:
     description: Sonarqube host
-    default: https://sonar.ts.sv
+    default: https://sonar.prod.tools.tradeshift.net
   scanner:
     decsription: Sonarqube scanner
     default: sonar-scanner
