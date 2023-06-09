@@ -8,12 +8,15 @@ inputs:
   ca-cert:
     description: MTLS ca cert
     required: false
+    default: ${{ secrets.MTLS_CACERT }}
   client-cert:
     description: MTLS client cert, configuring this will enable the proxy
     required: false
+    default: ${{ secrets.MTLS_CERT }}
   client-key:
     description: MTLS client key
     required: false
+    default: ${{ secrets.MTLS_KEY }}
   host:
     description: Sonarqube host
     default: https://sonar.prod.tools.tradeshift.net
@@ -29,6 +32,7 @@ inputs:
   token:
     description: Sonarqube access token
     required: true
+    default: ${{ secrets.SONAR_TOKEN }}
   github-token:
     description: >
       Github token for cleaning up PR comments. By default, the automatic
