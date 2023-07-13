@@ -16,7 +16,8 @@ export function create(
     '-Dsonar.sourceEncoding=UTF-8',
     `-Dsonar.projectKey=${ctx.repo.repo}`,
     `-Dsonar.host.url=${sonarHost}`,
-    `-Dsonar.scm.revision=${sha}`
+    `-Dsonar.scm.revision=${sha}`,
+    '-X'
   ];
 
   if (ctx.eventName === 'pull_request') {
