@@ -1,5 +1,6 @@
 import {setFailed} from '@actions/core';
 import {context} from '@actions/github';
+import process from 'process';
 import {headSHA} from './git';
 import {getInputs} from './inputs';
 import * as proxy from './proxy';
@@ -17,12 +18,14 @@ async function run(): Promise<void> {
     state.setIsPost();
 
     const inputs = await getInputs();
-    if (!inputs.host) {
-      throw new Error(`host is required`);
-    }
-    let sonarHost: string = inputs.host;
-    if (inputs.clientCert) {
-      sonarHost = await proxy.start(inputs);
+    let sonarHost =
+      'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
+    const labels = process.env.RUNNER_LABELS;
+    if (!labels?.includes('self-hosted') && inputs.clientCert) {
+      sonarHost = await proxy.start(
+        inputs,
+        'https://sonar.prod.tools.tradeshift.net'
+      );
     }
 
     const sha = await headSHA();
