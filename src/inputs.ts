@@ -19,7 +19,7 @@ export async function getInputs(): Promise<Inputs> {
     caCert: core.getInput('ca-cert'),
     clientCert: core.getInput('client-cert'),
     clientKey: core.getInput('client-key'),
-    host: core.getInput('host'),
+    host: core.getInput('newHost'),
     scanner: core.getInput('scanner'),
     sonarProxyImage: core.getInput('sonar-proxy-image'),
     sonarScannerVersion: core.getInput('sonar-scanner-version'),

@@ -17,6 +17,12 @@ inputs:
   host:
     description: Sonarqube host
     default: https://sonar.prod.tools.tradeshift.net
+  # We did not want to raise 200+ PRs to change the host everywhere, instead we introduced a new input called newHost
+  # and the action code will only use this and ignore the "host" from above.
+  newHost:
+    description: Sonarqube host
+    default: https://sonar.prod.tools.tradeshift.net
+    required: false
   scanner:
     decsription: Sonarqube scanner
     default: sonar-scanner
