@@ -117,7 +117,6 @@ function getInputs() {
             caCert: core.getInput('ca-cert'),
             clientCert: core.getInput('client-cert'),
             clientKey: core.getInput('client-key'),
-            host: core.getInput('host'),
             scanner: core.getInput('scanner'),
             sonarProxyImage: core.getInput('sonar-proxy-image'),
             sonarScannerVersion: core.getInput('sonar-scanner-version'),
@@ -202,9 +201,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
+const process_1 = __importDefault(__nccwpck_require__(7282));
 const git_1 = __nccwpck_require__(3374);
 const inputs_1 = __nccwpck_require__(6180);
 const proxy = __importStar(__nccwpck_require__(8689));
@@ -221,12 +224,10 @@ function run() {
             }
             state.setIsPost();
             const inputs = yield (0, inputs_1.getInputs)();
-            if (!inputs.host) {
-                throw new Error(`host is required`);
-            }
-            let sonarHost = inputs.host;
-            if (inputs.clientCert) {
-                sonarHost = yield proxy.start(inputs);
+            let sonarHost = 'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
+            const labels = process_1.default.env.RUNNER_LABELS;
+            if (!(labels === null || labels === void 0 ? void 0 : labels.includes('self-hosted')) && inputs.clientCert) {
+                sonarHost = yield proxy.start(inputs, 'https://sonar.prod.tools.tradeshift.net');
             }
             const sha = yield (0, git_1.headSHA)();
             const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
@@ -314,7 +315,7 @@ exports.stop = exports.log = exports.start = void 0;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
 const state_1 = __nccwpck_require__(9249);
-function start(inputs) {
+function start(inputs, sonarHost) {
     return __awaiter(this, void 0, void 0, function* () {
         (0, core_1.startGroup)('Starting sonar proxy');
         if (!inputs.sonarProxyImage) {
@@ -340,7 +341,7 @@ function start(inputs) {
             '-e',
             `KEY=${inputs.clientKey}`,
             '-e',
-            `SONAR_HOST=${inputs.host}`,
+            `SONAR_HOST=${sonarHost}`,
             inputs.sonarProxyImage
         ];
         const res = yield (0, exec_1.getExecOutput)('docker', args, { silent: true });
@@ -9103,8 +9104,11 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 		if (headers['transfer-encoding'] === 'chunked' && !headers['content-length']) {
 			response.once('close', function (hadError) {
+				// tests for socket presence, as in some situations the
+				// the 'socket' event is not triggered for the request
+				// (happens in deno), avoids `TypeError`
 				// if a data listener is still present we didn't end cleanly
-				const hasDataListener = socket.listenerCount('data') > 0;
+				const hasDataListener = socket && socket.listenerCount('data') > 0;
 
 				if (hasDataListener && !hadError) {
 					const err = new Error('Premature close');
@@ -14041,6 +14045,14 @@ module.exports = require("os");
 
 "use strict";
 module.exports = require("path");
+
+/***/ }),
+
+/***/ 7282:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");
 
 /***/ }),
 
