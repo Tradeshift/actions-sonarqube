@@ -128,3 +128,4 @@ jobs:
           scanner: maven
           token: ${{ secrets.SONAR_TOKEN }}
 ```
+
