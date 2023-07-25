@@ -1,6 +1,6 @@
 name: sonarqube
 description: runs a sonar scanner
-author: Benjamin Nørgaard
+author: Benjamin Nøtgaard
 inputs:
   args:
     description: additional sonarqube arguments
@@ -14,9 +14,6 @@ inputs:
   client-key:
     description: MTLS client key
     required: false
-  host:
-    description: Sonarqube host
-    default: https://sonar.prod.tools.tradeshift.net
   scanner:
     decsription: Sonarqube scanner
     default: sonar-scanner
@@ -25,7 +22,7 @@ inputs:
     default: eu.gcr.io/tradeshift-public/sonarqube-proxy:master
   sonar-scanner-version:
     description: version of the SonarScanner cli to use/install
-    default: 4.6.0.2311
+    default: 4.7.0.2747
   token:
     description: Sonarqube access token
     required: true

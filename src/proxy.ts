@@ -3,7 +3,10 @@ import {getExecOutput} from '@actions/exec';
 import {Inputs} from './inputs';
 import {setProxyContainer} from './state';
 
-export async function start(inputs: Inputs): Promise<string> {
+export async function start(
+  inputs: Inputs,
+  sonarHost: string
+): Promise<string> {
   startGroup('Starting sonar proxy');
   if (!inputs.sonarProxyImage) {
     throw new Error('sonar-proxy-image is required');
@@ -28,7 +31,7 @@ export async function start(inputs: Inputs): Promise<string> {
     '-e',
     `KEY=${inputs.clientKey}`,
     '-e',
-    `SONAR_HOST=${inputs.host}`,
+    `SONAR_HOST=${sonarHost}`,
     inputs.sonarProxyImage
   ];
   const res = await getExecOutput('docker', args, {silent: true});

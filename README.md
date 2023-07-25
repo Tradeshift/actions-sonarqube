@@ -27,7 +27,6 @@ jobs:
       - uses: tradeshift/actions-sonarqube@v2
         with:
           token: ${{ secrets.SONAR_TOKEN }}
-          host: https://mysonar.com
 ```
 
 ### Branch analysis
@@ -51,7 +50,6 @@ jobs:
       - uses: tradeshift/actions-sonarqube@v2
         with:
           token: ${{ secrets.SONAR_TOKEN }}
-          host: https://mysonar.com
 ```
 
 ### Running with mTLS
@@ -76,7 +74,6 @@ jobs:
           client-cert: ${{ secrets.SONAR_CLIENTCERT }}
           client-key: ${{ secrets.SONAR_CLIENTKEY }}
           token: ${{ secrets.SONAR_TOKEN }}
-          host: https://mysonar.com
 ```
 
 ## Using maven
@@ -130,5 +127,4 @@ jobs:
         with:
           scanner: maven
           token: ${{ secrets.SONAR_TOKEN }}
-          host: 'https://sonar.ts.sv'
 ```

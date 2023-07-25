@@ -6,7 +6,6 @@ export interface Inputs {
   caCert?: string;
   clientCert?: string;
   clientKey?: string;
-  host?: string;
   scanner?: string;
   sonarProxyImage?: string;
   sonarScannerVersion?: string;
@@ -19,7 +18,6 @@ export async function getInputs(): Promise<Inputs> {
     caCert: core.getInput('ca-cert'),
     clientCert: core.getInput('client-cert'),
     clientKey: core.getInput('client-key'),
-    host: core.getInput('host'),
     scanner: core.getInput('scanner'),
     sonarProxyImage: core.getInput('sonar-proxy-image'),
     sonarScannerVersion: core.getInput('sonar-scanner-version'),
