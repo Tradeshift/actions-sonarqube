@@ -118,7 +118,6 @@ function getInputs() {
             clientCert: core.getInput('client-cert'),
             clientKey: core.getInput('client-key'),
             scanner: core.getInput('scanner'),
-            sonarProxyImage: core.getInput('sonar-proxy-image'),
             sonarScannerVersion: core.getInput('sonar-scanner-version'),
             token: core.getInput('token')
         };
@@ -207,28 +206,46 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
+const fs_1 = __nccwpck_require__(7147);
 const process_1 = __importDefault(__nccwpck_require__(7282));
 const git_1 = __nccwpck_require__(3374);
 const inputs_1 = __nccwpck_require__(6180);
-const proxy = __importStar(__nccwpck_require__(8689));
+const child_process_1 = __nccwpck_require__(2081);
 const sonarScanner = __importStar(__nccwpck_require__(6789));
 const maven = __importStar(__nccwpck_require__(1613));
-const state = __importStar(__nccwpck_require__(9249));
 const args = __importStar(__nccwpck_require__(4133));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            if (state.isPost) {
-                yield post();
-                return;
-            }
-            state.setIsPost();
             const inputs = yield (0, inputs_1.getInputs)();
+            (0, core_1.startGroup)('Selecting sonar host');
             let sonarHost = 'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
             const labels = process_1.default.env.RUNNER_LABELS;
-            if (!(labels === null || labels === void 0 ? void 0 : labels.includes('self-hosted')) && inputs.clientCert) {
-                sonarHost = yield proxy.start(inputs, 'https://sonar.prod.tools.tradeshift.net');
+            if (!(labels === null || labels === void 0 ? void 0 : labels.includes('self-hosted'))) {
+                (0, core_1.info)('Detected running on GH runners');
+                if (!inputs.caCert) {
+                    throw new Error('ca-cert is required');
+                }
+                if (!inputs.clientCert) {
+                    throw new Error('client-cert is required');
+                }
+                if (!inputs.clientKey) {
+                    throw new Error('client-key is required');
+                }
+                // The data is base64 encoded so we first need to decode it
+                const caCert = Buffer.from(inputs.caCert, 'base64');
+                const clientCert = Buffer.from(inputs.clientCert, 'base64');
+                const clientKey = Buffer.from(inputs.clientKey, 'base64');
+                const caPromise = fs_1.promises.writeFile('ca.crt', caCert);
+                const clientPromise = fs_1.promises.writeFile('client.crt', clientCert);
+                const keyPromise = fs_1.promises.writeFile('key', clientKey);
+                yield Promise.all([caPromise, clientPromise, keyPromise]);
+                (0, child_process_1.execSync)('openssl pkcs12 -export -in client.crt -inkey key -CAfile ca.crt -name "sonar.prod.tools.tradeshift.net" -out sonar.p12 -passout pass:123');
+                process_1.default.env['SONAR_SCANNER_OPTS'] =
+                    '-Djavax.net.ssl.keyStore=sonar.p12 -Djavax.net.ssl.keyStoreType=pkcs12 -Djavax.net.ssl.keyStorePassword=123';
+                sonarHost = 'https://sonar.prod.tools.tradeshift.net';
             }
+            (0, core_1.endGroup)();
             const sha = yield (0, git_1.headSHA)();
             const sonarArgs = args.create(inputs, sonarHost, github_1.context, sha);
             switch (inputs.scanner) {
@@ -247,14 +264,6 @@ function run() {
         }
         catch (error) {
             (0, core_1.setFailed)(error.message);
-        }
-    });
-}
-function post() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (state.proxyContainer) {
-            yield proxy.log(state.proxyContainer);
-            yield proxy.stop(state.proxyContainer);
         }
     });
 }
@@ -292,110 +301,6 @@ function run(args) {
     });
 }
 exports.run = run;
-
-
-/***/ }),
-
-/***/ 8689:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.stop = exports.log = exports.start = void 0;
-const core_1 = __nccwpck_require__(2186);
-const exec_1 = __nccwpck_require__(1514);
-const state_1 = __nccwpck_require__(9249);
-function start(inputs, sonarHost) {
-    return __awaiter(this, void 0, void 0, function* () {
-        (0, core_1.startGroup)('Starting sonar proxy');
-        if (!inputs.sonarProxyImage) {
-            throw new Error('sonar-proxy-image is required');
-        }
-        if (!inputs.caCert) {
-            throw new Error('ca-cert is required');
-        }
-        if (!inputs.clientCert) {
-            throw new Error('client-cert is required');
-        }
-        if (!inputs.clientKey) {
-            throw new Error('client-key is required');
-        }
-        const args = [
-            'run',
-            '--rm',
-            '-d',
-            '-e',
-            `CACERT=${inputs.caCert}`,
-            '-e',
-            `CERT=${inputs.clientCert}`,
-            '-e',
-            `KEY=${inputs.clientKey}`,
-            '-e',
-            `SONAR_HOST=${sonarHost}`,
-            inputs.sonarProxyImage
-        ];
-        const res = yield (0, exec_1.getExecOutput)('docker', args, { silent: true });
-        if (res.stderr !== '' && res.exitCode) {
-            throw new Error(`could not start sonar proxy container: ${res.stderr}`);
-        }
-        const containerID = res.stdout.trim();
-        (0, state_1.setProxyContainer)(containerID);
-        const proxyIP = yield getIP(containerID);
-        const host = `http://${proxyIP}:9000`;
-        (0, core_1.info)(`Proxy container: ${containerID}`);
-        (0, core_1.info)(`Proxy container IP: ${proxyIP}`);
-        (0, core_1.info)(`Proxy container host: ${host}`);
-        (0, core_1.endGroup)();
-        return host;
-    });
-}
-exports.start = start;
-function log(containerID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        (0, core_1.info)('Getting sonar proxy logs');
-        const res = yield (0, exec_1.getExecOutput)('docker', ['logs', containerID]);
-        (0, core_1.info)(`sonar proxy log: ${res.stdout}`);
-        return;
-    });
-}
-exports.log = log;
-function stop(containerID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        (0, core_1.info)('Stopping sonar proxy');
-        const res = yield (0, exec_1.getExecOutput)('docker', ['stop', containerID]);
-        if (res.stderr !== '' && res.exitCode) {
-            (0, core_1.warning)(`could not stop sonar proxy: ${res.stderr}`);
-        }
-        return;
-    });
-}
-exports.stop = stop;
-function getIP(containerID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const res = yield (0, exec_1.getExecOutput)('docker', ['inspect', containerID], {
-            silent: true
-        });
-        if (res.stderr !== '' && res.exitCode) {
-            throw new Error('could not inspect docker container');
-        }
-        (0, core_1.debug)(res.stdout.trim());
-        const obj = JSON.parse(res.stdout.trim());
-        if (!obj || !obj[0].NetworkSettings.Networks.bridge.IPAddress) {
-            throw new Error('ip adress of proxy container could not be determined');
-        }
-        return obj[0].NetworkSettings.Networks.bridge.IPAddress;
-    });
-}
 
 
 /***/ }),
@@ -504,29 +409,6 @@ function download(version) {
         return sonarCachedPath;
     });
 }
-
-
-/***/ }),
-
-/***/ 9249:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setProxyContainer = exports.setIsPost = exports.actionStartedAt = exports.proxyContainer = exports.isPost = void 0;
-const core_1 = __nccwpck_require__(2186);
-exports.isPost = (0, core_1.getState)('isPost') === 'true';
-exports.proxyContainer = (0, core_1.getState)('proxyContainer');
-exports.actionStartedAt = new Date((0, core_1.getState)('actionStartedAt'));
-function setIsPost() {
-    (0, core_1.saveState)('isPost', 'true');
-}
-exports.setIsPost = setIsPost;
-function setProxyContainer(id) {
-    (0, core_1.saveState)('proxyContainer', id);
-}
-exports.setProxyContainer = setProxyContainer;
 
 
 /***/ }),
@@ -9234,14 +9116,42 @@ var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
 // Max safe segment length for coercion.
 var MAX_SAFE_COMPONENT_LENGTH = 16
 
+var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6
+
 // The actual regexps go on exports.re
 var re = exports.re = []
+var safeRe = exports.safeRe = []
 var src = exports.src = []
 var t = exports.tokens = {}
 var R = 0
 
 function tok (n) {
   t[n] = R++
+}
+
+var LETTERDASHNUMBER = '[a-zA-Z0-9-]'
+
+// Replace some greedy regex tokens to prevent regex dos issues. These regex are
+// used internally via the safeRe object since all inputs in this library get
+// normalized first to trim and collapse all extra whitespace. The original
+// regexes are exported for userland consumption and lower level usage. A
+// future breaking change could export the safer regex only with a note that
+// all input should have extra whitespace removed.
+var safeRegexReplacements = [
+  ['\\s', 1],
+  ['\\d', MAX_LENGTH],
+  [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH],
+]
+
+function makeSafeRe (value) {
+  for (var i = 0; i < safeRegexReplacements.length; i++) {
+    var token = safeRegexReplacements[i][0]
+    var max = safeRegexReplacements[i][1]
+    value = value
+      .split(token + '*').join(token + '{0,' + max + '}')
+      .split(token + '+').join(token + '{1,' + max + '}')
+  }
+  return value
 }
 
 // The following Regular Expressions can be used for tokenizing,
@@ -9253,14 +9163,14 @@ function tok (n) {
 tok('NUMERICIDENTIFIER')
 src[t.NUMERICIDENTIFIER] = '0|[1-9]\\d*'
 tok('NUMERICIDENTIFIERLOOSE')
-src[t.NUMERICIDENTIFIERLOOSE] = '[0-9]+'
+src[t.NUMERICIDENTIFIERLOOSE] = '\\d+'
 
 // ## Non-numeric Identifier
 // Zero or more digits, followed by a letter or hyphen, and then zero or
 // more letters, digits, or hyphens.
 
 tok('NONNUMERICIDENTIFIER')
-src[t.NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
+src[t.NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-]' + LETTERDASHNUMBER + '*'
 
 // ## Main Version
 // Three dot-separated numeric identifiers.
@@ -9302,7 +9212,7 @@ src[t.PRERELEASELOOSE] = '(?:-?(' + src[t.PRERELEASEIDENTIFIERLOOSE] +
 // Any combination of digits, letters, or hyphens.
 
 tok('BUILDIDENTIFIER')
-src[t.BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
+src[t.BUILDIDENTIFIER] = LETTERDASHNUMBER + '+'
 
 // ## Build Metadata
 // Plus sign, followed by one or more period-separated build metadata
@@ -9382,6 +9292,7 @@ src[t.COERCE] = '(^|[^\\d])' +
               '(?:$|[^\\d])'
 tok('COERCERTL')
 re[t.COERCERTL] = new RegExp(src[t.COERCE], 'g')
+safeRe[t.COERCERTL] = new RegExp(makeSafeRe(src[t.COERCE]), 'g')
 
 // Tilde ranges.
 // Meaning is "reasonably at or greater than"
@@ -9391,6 +9302,7 @@ src[t.LONETILDE] = '(?:~>?)'
 tok('TILDETRIM')
 src[t.TILDETRIM] = '(\\s*)' + src[t.LONETILDE] + '\\s+'
 re[t.TILDETRIM] = new RegExp(src[t.TILDETRIM], 'g')
+safeRe[t.TILDETRIM] = new RegExp(makeSafeRe(src[t.TILDETRIM]), 'g')
 var tildeTrimReplace = '$1~'
 
 tok('TILDE')
@@ -9406,6 +9318,7 @@ src[t.LONECARET] = '(?:\\^)'
 tok('CARETTRIM')
 src[t.CARETTRIM] = '(\\s*)' + src[t.LONECARET] + '\\s+'
 re[t.CARETTRIM] = new RegExp(src[t.CARETTRIM], 'g')
+safeRe[t.CARETTRIM] = new RegExp(makeSafeRe(src[t.CARETTRIM]), 'g')
 var caretTrimReplace = '$1^'
 
 tok('CARET')
@@ -9427,6 +9340,7 @@ src[t.COMPARATORTRIM] = '(\\s*)' + src[t.GTLT] +
 
 // this one has to use the /g flag
 re[t.COMPARATORTRIM] = new RegExp(src[t.COMPARATORTRIM], 'g')
+safeRe[t.COMPARATORTRIM] = new RegExp(makeSafeRe(src[t.COMPARATORTRIM]), 'g')
 var comparatorTrimReplace = '$1$2$3'
 
 // Something like `1.2.3 - 1.2.4`
@@ -9455,6 +9369,14 @@ for (var i = 0; i < R; i++) {
   debug(i, src[i])
   if (!re[i]) {
     re[i] = new RegExp(src[i])
+
+    // Replace all greedy whitespace to prevent regex dos issues. These regex are
+    // used internally via the safeRe object since all inputs in this library get
+    // normalized first to trim and collapse all extra whitespace. The original
+    // regexes are exported for userland consumption and lower level usage. A
+    // future breaking change could export the safer regex only with a note that
+    // all input should have extra whitespace removed.
+    safeRe[i] = new RegExp(makeSafeRe(src[i]))
   }
 }
 
@@ -9479,7 +9401,7 @@ function parse (version, options) {
     return null
   }
 
-  var r = options.loose ? re[t.LOOSE] : re[t.FULL]
+  var r = options.loose ? safeRe[t.LOOSE] : safeRe[t.FULL]
   if (!r.test(version)) {
     return null
   }
@@ -9534,7 +9456,7 @@ function SemVer (version, options) {
   this.options = options
   this.loose = !!options.loose
 
-  var m = version.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL])
+  var m = version.trim().match(options.loose ? safeRe[t.LOOSE] : safeRe[t.FULL])
 
   if (!m) {
     throw new TypeError('Invalid Version: ' + version)
@@ -9979,6 +9901,7 @@ function Comparator (comp, options) {
     return new Comparator(comp, options)
   }
 
+  comp = comp.trim().split(/\s+/).join(' ')
   debug('comparator', comp, options)
   this.options = options
   this.loose = !!options.loose
@@ -9995,7 +9918,7 @@ function Comparator (comp, options) {
 
 var ANY = {}
 Comparator.prototype.parse = function (comp) {
-  var r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
+  var r = this.options.loose ? safeRe[t.COMPARATORLOOSE] : safeRe[t.COMPARATOR]
   var m = comp.match(r)
 
   if (!m) {
@@ -10119,9 +10042,16 @@ function Range (range, options) {
   this.loose = !!options.loose
   this.includePrerelease = !!options.includePrerelease
 
-  // First, split based on boolean or ||
+  // First reduce all whitespace as much as possible so we do not have to rely
+  // on potentially slow regexes like \s*. This is then stored and used for
+  // future error messages as well.
   this.raw = range
-  this.set = range.split(/\s*\|\|\s*/).map(function (range) {
+    .trim()
+    .split(/\s+/)
+    .join(' ')
+
+  // First, split based on boolean or ||
+  this.set = this.raw.split('||').map(function (range) {
     return this.parseRange(range.trim())
   }, this).filter(function (c) {
     // throw out any that are not relevant for whatever reason
@@ -10129,7 +10059,7 @@ function Range (range, options) {
   })
 
   if (!this.set.length) {
-    throw new TypeError('Invalid SemVer Range: ' + range)
+    throw new TypeError('Invalid SemVer Range: ' + this.raw)
   }
 
   this.format()
@@ -10148,20 +10078,19 @@ Range.prototype.toString = function () {
 
 Range.prototype.parseRange = function (range) {
   var loose = this.options.loose
-  range = range.trim()
   // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-  var hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE]
+  var hr = loose ? safeRe[t.HYPHENRANGELOOSE] : safeRe[t.HYPHENRANGE]
   range = range.replace(hr, hyphenReplace)
   debug('hyphen replace', range)
   // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-  range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace)
-  debug('comparator trim', range, re[t.COMPARATORTRIM])
+  range = range.replace(safeRe[t.COMPARATORTRIM], comparatorTrimReplace)
+  debug('comparator trim', range, safeRe[t.COMPARATORTRIM])
 
   // `~ 1.2.3` => `~1.2.3`
-  range = range.replace(re[t.TILDETRIM], tildeTrimReplace)
+  range = range.replace(safeRe[t.TILDETRIM], tildeTrimReplace)
 
   // `^ 1.2.3` => `^1.2.3`
-  range = range.replace(re[t.CARETTRIM], caretTrimReplace)
+  range = range.replace(safeRe[t.CARETTRIM], caretTrimReplace)
 
   // normalize spaces
   range = range.split(/\s+/).join(' ')
@@ -10169,7 +10098,7 @@ Range.prototype.parseRange = function (range) {
   // At this point, the range is completely trimmed and
   // ready to be split into comparators.
 
-  var compRe = loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
+  var compRe = loose ? safeRe[t.COMPARATORLOOSE] : safeRe[t.COMPARATOR]
   var set = range.split(' ').map(function (comp) {
     return parseComparator(comp, this.options)
   }, this).join(' ').split(/\s+/)
@@ -10269,7 +10198,7 @@ function replaceTildes (comp, options) {
 }
 
 function replaceTilde (comp, options) {
-  var r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
+  var r = options.loose ? safeRe[t.TILDELOOSE] : safeRe[t.TILDE]
   return comp.replace(r, function (_, M, m, p, pr) {
     debug('tilde', comp, _, M, m, p, pr)
     var ret
@@ -10310,7 +10239,7 @@ function replaceCarets (comp, options) {
 
 function replaceCaret (comp, options) {
   debug('caret', comp, options)
-  var r = options.loose ? re[t.CARETLOOSE] : re[t.CARET]
+  var r = options.loose ? safeRe[t.CARETLOOSE] : safeRe[t.CARET]
   return comp.replace(r, function (_, M, m, p, pr) {
     debug('caret', comp, _, M, m, p, pr)
     var ret
@@ -10369,7 +10298,7 @@ function replaceXRanges (comp, options) {
 
 function replaceXRange (comp, options) {
   comp = comp.trim()
-  var r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE]
+  var r = options.loose ? safeRe[t.XRANGELOOSE] : safeRe[t.XRANGE]
   return comp.replace(r, function (ret, gtlt, M, m, p, pr) {
     debug('xRange', comp, ret, gtlt, M, m, p, pr)
     var xM = isX(M)
@@ -10444,7 +10373,7 @@ function replaceXRange (comp, options) {
 function replaceStars (comp, options) {
   debug('replaceStars', comp, options)
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[t.STAR], '')
+  return comp.trim().replace(safeRe[t.STAR], '')
 }
 
 // This function is passed to string.replace(re[t.HYPHENRANGE])
@@ -10770,7 +10699,7 @@ function coerce (version, options) {
 
   var match = null
   if (!options.rtl) {
-    match = version.match(re[t.COERCE])
+    match = version.match(safeRe[t.COERCE])
   } else {
     // Find the right-most coercible string that does not share
     // a terminus with a more left-ward coercible string.
@@ -10781,17 +10710,17 @@ function coerce (version, options) {
     // Stop when we get a match that ends at the string end, since no
     // coercible string can be more right-ward without the same terminus.
     var next
-    while ((next = re[t.COERCERTL].exec(version)) &&
+    while ((next = safeRe[t.COERCERTL].exec(version)) &&
       (!match || match.index + match[0].length !== version.length)
     ) {
       if (!match ||
           next.index + next[0].length !== match.index + match[0].length) {
         match = next
       }
-      re[t.COERCERTL].lastIndex = next.index + next[1].length + next[2].length
+      safeRe[t.COERCERTL].lastIndex = next.index + next[1].length + next[2].length
     }
     // leave it in a clean state
-    re[t.COERCERTL].lastIndex = -1
+    safeRe[t.COERCERTL].lastIndex = -1
   }
 
   if (match === null) {
