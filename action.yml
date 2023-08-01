@@ -17,9 +17,6 @@ inputs:
   scanner:
     decsription: Sonarqube scanner
     default: sonar-scanner
-  sonar-proxy-image:
-    description: Sonarqube proxy image
-    default: eu.gcr.io/tradeshift-public/sonarqube-proxy:master
   sonar-scanner-version:
     description: version of the SonarScanner cli to use/install
     default: 4.7.0.2747
@@ -36,4 +33,3 @@ inputs:
 runs:
   using: node16
   main: dist/index.js
-  post: dist/index.js

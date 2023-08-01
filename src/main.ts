@@ -1,33 +1,49 @@
-import {setFailed} from '@actions/core';
+import {setFailed, endGroup, info, startGroup} from '@actions/core';
 import {context} from '@actions/github';
+import {promises as fs} from 'fs';
 import process from 'process';
 import {headSHA} from './git';
 import {getInputs} from './inputs';
-import * as proxy from './proxy';
+import {execSync} from 'child_process';
 import * as sonarScanner from './sonar-scanner';
 import * as maven from './maven';
-import * as state from './state';
 import * as args from './args';
 
 async function run(): Promise<void> {
   try {
-    if (state.isPost) {
-      await post();
-      return;
-    }
-    state.setIsPost();
-
     const inputs = await getInputs();
+    startGroup('Selecting sonar host');
     let sonarHost =
       'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
     const labels = process.env.RUNNER_LABELS;
-    if (!labels?.includes('self-hosted') && inputs.clientCert) {
-      sonarHost = await proxy.start(
-        inputs,
-        'https://sonar.prod.tools.tradeshift.net'
+    if (!labels?.includes('self-hosted')) {
+      info('Detected running on GH runners');
+      if (!inputs.caCert) {
+        throw new Error('ca-cert is required');
+      }
+      if (!inputs.clientCert) {
+        throw new Error('client-cert is required');
+      }
+      if (!inputs.clientKey) {
+        throw new Error('client-key is required');
+      }
+      // The data is base64 encoded so we first need to decode it
+      const caCert = Buffer.from(inputs.caCert, 'base64');
+      const clientCert = Buffer.from(inputs.clientCert, 'base64');
+      const clientKey = Buffer.from(inputs.clientKey, 'base64');
+      const caPromise = fs.writeFile('ca.crt', caCert);
+      const clientPromise = fs.writeFile('client.crt', clientCert);
+      const keyPromise = fs.writeFile('key', clientKey);
+      await Promise.all([caPromise, clientPromise, keyPromise]);
+      execSync(
+        'openssl pkcs12 -export -in client.crt -inkey key -CAfile ca.crt -name "sonar.prod.tools.tradeshift.net" -out sonar.p12 -passout pass:123'
       );
+      process.env['SONAR_SCANNER_OPTS'] =
+        '-Djavax.net.ssl.keyStore=sonar.p12 -Djavax.net.ssl.keyStoreType=pkcs12 -Djavax.net.ssl.keyStorePassword=123';
+      sonarHost = 'https://sonar.prod.tools.tradeshift.net';
     }
 
+    endGroup();
     const sha = await headSHA();
     const sonarArgs = args.create(inputs, sonarHost, context, sha);
 
@@ -49,13 +65,6 @@ async function run(): Promise<void> {
     }
   } catch (error) {
     setFailed((error as Error).message);
-  }
-}
-
-async function post(): Promise<void> {
-  if (state.proxyContainer) {
-    await proxy.log(state.proxyContainer);
-    await proxy.stop(state.proxyContainer);
   }
 }
 
