@@ -221,6 +221,8 @@ function run() {
             (0, core_1.startGroup)('Selecting sonar host');
             let sonarHost = 'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
             const labels = process_1.default.env.RUNNER_LABELS;
+            (0, core_1.info)(`Running on ${process_1.default.env.RUNNER_NAME}`);
+            (0, core_1.info)(`Found runner labels: ${labels}`);
             if (!(labels === null || labels === void 0 ? void 0 : labels.includes('self-hosted'))) {
                 (0, core_1.info)('Detected running on GH runners');
                 if (!inputs.caCert) {
