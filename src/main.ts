@@ -16,9 +16,10 @@ async function run(): Promise<void> {
     let sonarHost =
       'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
     const labels = process.env.RUNNER_LABELS;
-    info(`Running on ${process.env.RUNNER_NAME}`);
+    info(`Running on: ${process.env.RUNNER_NAME}`);
     info(`Found runner labels: ${labels}`);
-    if (!labels?.includes('self-hosted')) {
+    // GHA runners have no labels whereas hosted do
+    if (!labels) {
       info('Detected running on GH runners');
       if (!inputs.caCert) {
         throw new Error('ca-cert is required');
