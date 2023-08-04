@@ -1,20 +1,31 @@
 import {setFailed, endGroup, info, startGroup} from '@actions/core';
 import {context} from '@actions/github';
-import {promises as fs} from 'fs';
+import fs, {promises} from 'fs';
 import process from 'process';
-import {headSHA} from './git';
 import {getInputs} from './inputs';
 import {execSync} from 'child_process';
+import { fetchRef } from './git';
 import * as sonarScanner from './sonar-scanner';
 import * as maven from './maven';
 import * as args from './args';
 
 async function run(): Promise<void> {
   try {
+    const super_long = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     const inputs = await getInputs();
     startGroup('Selecting sonar host');
+    info(super_long);
+    const baseRef = process.env.GITHUB_BASE_REF;
+    info(`Found base ref: ${baseRef}`);
+    // The base ref being set means we are processing a PR
+    // and need some extra info
+    if (baseRef && !fs.existsSync(`.git/refs/heads/${baseRef}`)) {
+      // fetch the default branch
+      fetchRef(baseRef);
+    }
+
     let sonarHost =
-      'http://sonarqube-default-sonarqube-0.sonarqube-default-sonarqube.default.svc.cluster.local:9000';
+      'http://sonarqube-default-sonarqube.default.svc.cluster.local:9000';
     const labels = process.env.RUNNER_LABELS;
     info(`Running on: ${process.env.RUNNER_NAME}`);
     info(`Found runner labels: ${labels}`);
@@ -34,9 +45,9 @@ async function run(): Promise<void> {
       const caCert = Buffer.from(inputs.caCert, 'base64');
       const clientCert = Buffer.from(inputs.clientCert, 'base64');
       const clientKey = Buffer.from(inputs.clientKey, 'base64');
-      const caPromise = fs.writeFile('ca.crt', caCert);
-      const clientPromise = fs.writeFile('client.crt', clientCert);
-      const keyPromise = fs.writeFile('key', clientKey);
+      const caPromise = promises.writeFile('ca.crt', caCert);
+      const clientPromise = promises.writeFile('client.crt', clientCert);
+      const keyPromise = promises.writeFile('key', clientKey);
       await Promise.all([caPromise, clientPromise, keyPromise]);
       execSync(
         'openssl pkcs12 -export -in client.crt -inkey key -CAfile ca.crt -name "sonar.prod.tools.tradeshift.net" -out sonar.p12 -passout pass:123'
@@ -47,8 +58,8 @@ async function run(): Promise<void> {
     }
 
     endGroup();
-    const sha = await headSHA();
-    const sonarArgs = args.create(inputs, sonarHost, context, sha);
+    //const sha = await headSHA();
+    const sonarArgs = args.create(inputs, sonarHost, context);
 
     switch (inputs.scanner) {
       case 'sonar-scanner':

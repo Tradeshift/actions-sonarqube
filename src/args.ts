@@ -7,16 +7,14 @@ import {Inputs} from './inputs';
 export function create(
   inputs: Inputs,
   sonarHost: string,
-  ctx: Context,
-  sha: string
+  ctx: Context
 ): string[] {
   startGroup('Building Sonar arguments');
   const args = [
     `-Dsonar.login=${inputs.token}`,
     '-Dsonar.sourceEncoding=UTF-8',
     `-Dsonar.projectKey=${ctx.repo.repo}`,
-    `-Dsonar.host.url=${sonarHost}`,
-    `-Dsonar.scm.revision=${sha}`
+    `-Dsonar.host.url=${sonarHost}`
   ];
 
   if (ctx.eventName === 'pull_request') {
