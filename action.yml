@@ -19,7 +19,7 @@ inputs:
     default: sonar-scanner
   sonar-scanner-version:
     description: version of the SonarScanner cli to use/install
-    default: 4.7.0.2747
+    default: 5.0.1.3006
   token:
     description: Sonarqube access token
     required: true
