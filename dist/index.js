@@ -7,7 +7,7 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.create = void 0;
+exports.create = create;
 const core_1 = __nccwpck_require__(2186);
 function create(inputs, sonarHost, ctx, sha) {
     (0, core_1.startGroup)('Building Sonar arguments');
@@ -33,7 +33,6 @@ function create(inputs, sonarHost, ctx, sha) {
     (0, core_1.endGroup)();
     return args;
 }
-exports.create = create;
 
 
 /***/ }),
@@ -53,7 +52,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.headSHA = void 0;
+exports.headSHA = headSHA;
 const exec_1 = __nccwpck_require__(1514);
 function headSHA() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -64,7 +63,6 @@ function headSHA() {
         return res.stdout.trim();
     });
 }
-exports.headSHA = headSHA;
 
 
 /***/ }),
@@ -107,7 +105,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getInputList = exports.getInputs = void 0;
+exports.getInputs = getInputs;
+exports.getInputList = getInputList;
 const csv_parse_1 = __nccwpck_require__(6107);
 const core = __importStar(__nccwpck_require__(2186));
 function getInputs() {
@@ -124,7 +123,6 @@ function getInputs() {
         return inputs;
     });
 }
-exports.getInputs = getInputs;
 function getInputList(name_1) {
     return __awaiter(this, arguments, void 0, function* (name, ignoreComma = true) {
         const res = [];
@@ -158,7 +156,6 @@ function getInputList(name_1) {
         return res.filter(item => item).map(pat => pat.trim());
     });
 }
-exports.getInputList = getInputList;
 
 
 /***/ }),
@@ -290,7 +287,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.run = run;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
 function run(args) {
@@ -303,7 +300,6 @@ function run(args) {
         (0, core_1.endGroup)();
     });
 }
-exports.run = run;
 
 
 /***/ }),
@@ -346,7 +342,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.run = run;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
 const io_1 = __nccwpck_require__(7436);
@@ -364,7 +360,6 @@ function run(version, args) {
         (0, core_1.endGroup)();
     });
 }
-exports.run = run;
 function isAvailable(version) {
     return __awaiter(this, void 0, void 0, function* () {
         let sonarScannerPath;
@@ -35559,6 +35554,13 @@ const normalize_options = function(opts){
       `got ${JSON.stringify(options.on_record)}`
     ], options);
   }
+  // Normalize option `on_skip`
+  // options.on_skip ??= (err, chunk) => {
+  //   this.emit('skip', err, chunk);
+  // };
+  if(options.on_skip !== undefined && options.on_skip !== null && typeof options.on_skip !== 'function'){
+    throw new Error(`Invalid Option: on_skip must be a function, got ${JSON.stringify(options.on_skip)}`);
+  }
   // Normalize option `quote`
   if(options.quote === null || options.quote === false || options.quote === ''){
     options.quote = null;
@@ -36444,10 +36446,9 @@ const transform = function(original_options = {}) {
 class Parser extends stream.Transform {
   constructor(opts = {}){
     super({...{readableObjectMode: true}, ...opts, encoding: null});
-    this.api = transform(opts);
-    this.api.options.on_skip = (err, chunk) => {
+    this.api = transform({on_skip: (err, chunk) => {
       this.emit('skip', err, chunk);
-    };
+    }, ...opts});
     // Backward compatibility
     this.state = this.api.state;
     this.options = this.api.options;
