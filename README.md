@@ -82,6 +82,8 @@ The java setup below enables the MTLS in the JVM, so no need to use the proxy in
 
 The proxy is not enabled when `client-cert` is not set.
 
+The scan runs `org.sonarsource.scanner.maven:sonar-maven-plugin:<version>:sonar`. Set the version with `sonar-maven-plugin-version` (default `5.7.0.6970`).
+
 ```yaml
 name: Sonarqube scanner
 
@@ -126,6 +128,7 @@ jobs:
         uses: tradeshift/actions-sonarqube@v2
         with:
           scanner: maven
+          # sonar-maven-plugin-version: 5.7.0.6970
           token: ${{ secrets.SONAR_TOKEN }}
 ```
 

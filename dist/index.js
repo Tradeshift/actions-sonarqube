@@ -128,6 +128,7 @@ function getInputs() {
             clientKey: core.getInput('client-key'),
             scanner: core.getInput('scanner'),
             sonarScannerVersion: core.getInput('sonar-scanner-version'),
+            sonarMavenPluginVersion: core.getInput('sonar-maven-plugin-version'),
             token: core.getInput('token')
         };
         return inputs;
@@ -276,7 +277,7 @@ function run() {
                     yield sonarScanner.run(inputs.sonarScannerVersion, sonarArgs);
                     break;
                 case 'maven':
-                    yield maven.run(sonarArgs);
+                    yield maven.run(inputs.sonarMavenPluginVersion, sonarArgs);
                     break;
                 default:
                     throw new Error(`unsupported scanner:${inputs.scanner}`);
@@ -310,10 +311,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core_1 = __nccwpck_require__(7484);
 const exec_1 = __nccwpck_require__(5236);
-function run(args) {
+function run(version, args) {
     return __awaiter(this, void 0, void 0, function* () {
         (0, core_1.startGroup)('Running Maven SonarScanner');
-        const res = yield (0, exec_1.getExecOutput)('mvn', ['-B', 'sonar:sonar'].concat(args));
+        const res = yield (0, exec_1.getExecOutput)('mvn', [
+            '-B',
+            `org.sonarsource.scanner.maven:sonar-maven-plugin:${version}:sonar`
+        ].concat(args));
         if (res.stderr !== '' && res.exitCode) {
             throw new Error(`failed maven execution: ${res.stderr}`);
         }

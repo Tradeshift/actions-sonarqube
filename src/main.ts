@@ -60,7 +60,7 @@ async function run(): Promise<void> {
         await sonarScanner.run(inputs.sonarScannerVersion, sonarArgs);
         break;
       case 'maven':
-        await maven.run(sonarArgs);
+        await maven.run(inputs.sonarMavenPluginVersion, sonarArgs);
         break;
 
       default:

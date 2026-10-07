@@ -8,6 +8,7 @@ export interface Inputs {
   clientKey?: string;
   scanner?: string;
   sonarScannerVersion?: string;
+  sonarMavenPluginVersion: string;
   token?: string;
 }
 
@@ -19,6 +20,7 @@ export async function getInputs(): Promise<Inputs> {
     clientKey: core.getInput('client-key'),
     scanner: core.getInput('scanner'),
     sonarScannerVersion: core.getInput('sonar-scanner-version'),
+    sonarMavenPluginVersion: core.getInput('sonar-maven-plugin-version'),
     token: core.getInput('token')
   };
   return inputs;
