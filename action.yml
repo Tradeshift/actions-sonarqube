@@ -20,6 +20,9 @@ inputs:
   sonar-scanner-version:
     description: version of the SonarScanner cli to use/install
     default: 5.0.1.3006
+  sonar-maven-plugin-version:
+    description: version of org.sonarsource.scanner.maven:sonar-maven-plugin to use with the maven scanner
+    default: 5.7.0.6970
   token:
     description: Sonarqube access token
     required: true
